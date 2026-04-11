@@ -9,10 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="assets/css/style.css">
-    
-    <!-- Google Sign-In Library -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -30,10 +27,6 @@
             <div class="nav-icon-btn position-relative" title="سلة الطلبات" data-bs-toggle="modal" data-bs-target="#cartModal">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span class="badge-counter" id="cartCount">0</span>
-            </div>
-
-            <div class="nav-icon-btn position-relative" title="تقرير المبيعات" onclick="openSalesReport()">
-                <i class="fa-solid fa-chart-bar"></i>
             </div>
         </div>
 
@@ -82,8 +75,6 @@
         </div>
     </section>
 
-    <div class="container mb-4" id="dailySalesSummary"></div>
-
     <div class="container pb-5">
         
         <div class="filter-bar row g-3 align-items-center">
@@ -131,15 +122,14 @@
                     </ul>
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="loginTab">
-                            <!-- Google Sign-In Button -->
-                            <div id="gsiButton" class="mb-3"></div>
-                            <div id="gsiWarning" class="alert alert-warning d-none" role="alert">
-                                تأكد من إضافة هذا الرابط في Google Console ضمن Authorized JavaScript origins: <span id="clientOrigin"></span>
-                            </div>
-                            <div class="text-center text-muted my-3">- أو -</div>
-                            <input type="email" class="form-control mb-3" id="loginEmail" placeholder="البريد الإلكتروني">
-                            <input type="password" class="form-control mb-3" id="loginPassword" placeholder="كلمة المرور">
-                            <button class="btn btn-primary w-100" onclick="handleSimpleLogin()">دخول</button>
+                            <button class="btn btn-outline-dark w-100 mb-3" onclick="simulateGoogleLogin()">
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" width="20" class="me-2">
+                                الدخول باستخدام جوجل
+                            </button>
+                            <div class="text-center text-muted mb-3">- أو -</div>
+                            <input type="email" class="form-control mb-3" placeholder="البريد الإلكتروني">
+                            <input type="password" class="form-control mb-3" placeholder="كلمة المرور">
+                            <button class="btn btn-primary w-100" onclick="simulateLogin()">دخول</button>
                         </div>
                        <div class="tab-pane fade" id="signupTab">
                         <div id="signupAlert" class="alert alert-danger d-none small"></div>
@@ -250,6 +240,35 @@
     </div>
 
     <div class="modal fade" id="walletModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">محفظة الأرباح</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="display-6 fw-bold text-success mb-2">0.00 ج.م</div>
+                    <p class="text-muted small">رصيدك القابل للسحب</p>
+                    <hr>
+                    <form>
+                        <div class="mb-3 text-start">
+                            <label class="small">رقم المحفظة الإلكترونية</label>
+                            <input type="tel" class="form-control" placeholder="01xxxxxxxxx">
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label class="small">المبلغ المراد سحبه</label>
+                            <input type="number" class="form-control">
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" onclick="alert('تم إرسال طلب السحب بنجاح! ستتم المراجعة خلال 24 ساعة.')">سحب الأرباح</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="modal fade" id="walletModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 overflow-hidden">
             <div class="modal-header border-0 bg-light">
@@ -304,76 +323,18 @@
                     <span class="brand-name">مكسب <span>برو</span></span>
                 </p>
                 <div class="social-links mt-2">
-                    <a href="https://www.facebook.com/profile.php?fb_profile_edit_entry_point=%7B%22click_point%22%3A%22edit_profile_button%22%2C%22feature%22%3A%22profile_header%22%7D&id=61584432689909&sk=about" target="_blank" rel="noopener">
-                        <i class="fa-brands fa-facebook"></i>
-                    </a>
-                    <a href="https://wa.me/01553110124" target="_blank" rel="noopener">
-                        <i class="fa-brands fa-whatsapp"></i>
-                    </a>
-                    <a href="https://www.facebook.com/messages/t/61584432689909" target="_blank" rel="noopener">
-                        <i class="fa-solid fa-headset"></i>
-                    </a>
+                    <a href="#"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="#"><i class="fa-brands fa-whatsapp"></i></a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
                 </div>
             </div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/data.js"></script>
-    <script src="assets/js/modules/utils.js"></script>
-    <script src="assets/js/modules/ui.js"></script>
-    <script src="assets/js/modules/cart.js"></script>
-    <script src="assets/js/modules/auth.js"></script>
-    <script src="assets/js/modules/wallet.js"></script>
-    <script src="assets/js/modules/sales.js"></script>
-    <script src="assets/js/reports.js"></script>
-    <script src="assets/js/main.js"></script>
+    <script src="script.js"></script>
 
-    <script>
-        function initGoogleSignIn() {
-            const currentOrigin = window.location.origin;
-            document.getElementById('clientOrigin').innerText = currentOrigin;
-
-            const allowedOrigins = [
-                'http://localhost:8000',
-                'http://127.0.0.1:8000',
-                'http://127.0.0.1:5500',
-                'http://localhost:5500'
-            ];
-
-            if (!allowedOrigins.includes(currentOrigin)) {
-                document.getElementById('gsiWarning').classList.remove('d-none');
-            } else {
-                document.getElementById('gsiWarning').classList.add('d-none');
-            }
-
-            if (window.google && google.accounts && google.accounts.id) {
-                google.accounts.id.initialize({
-                    client_id: '1007595935377-n67v8avlbni4fovfn8l8pdck42spulqk.apps.googleusercontent.com',
-                    callback: handleCredentialResponse,
-                    auto_select: false,
-                    cancel_on_tap_outside: true,
-                    prompt_parent_id: 'loginModal'
-                });
-
-                google.accounts.id.renderButton(
-                    document.getElementById('gsiButton'),
-                    {
-                        theme: 'outline',
-                        size: 'large',
-                        text: 'signin_with',
-                        width: '100%'
-                    }
-                );
-
-                google.accounts.id.prompt();
-            } else {
-                console.error('Google Identity Services library failed to load.');
-            }
-        }
-
-        window.addEventListener('load', initGoogleSignIn);
-    </script>
-
+</body>
+</html>
 </body>
 </html>

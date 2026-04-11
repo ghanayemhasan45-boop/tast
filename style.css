@@ -168,7 +168,6 @@ body {
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
-    line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
@@ -276,12 +275,12 @@ body {
 
 /* --- Footer Design --- */
 .main-footer {
-    background-color: var(--primary);
+    background-color: var(--primary); /* نفس لون الهيدر */
     color: rgba(255, 255, 255, 0.8);
     padding: 30px 0;
-    margin-top: 50px;
+    margin-top: 50px; /* مسافة بينه وبين المنتجات */
     text-align: center;
-    border-top: 4px solid var(--accent);
+    border-top: 4px solid var(--accent); /* خط أخضر جمالي من فوق */
 }
 
 .main-footer .brand-name {
@@ -290,7 +289,7 @@ body {
 }
 
 .main-footer .brand-name span {
-    color: var(--accent);
+    color: var(--accent); /* كلمة "برو" بالأخضر */
 }
 
 .social-links {
@@ -310,16 +309,4 @@ body {
     opacity: 1;
     color: var(--accent);
     transform: translateY(-3px);
-}
-
-.daily-summary-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
-    margin-bottom: 15px;
-}
-
-.daily-summary-card h5 {
-    margin-bottom: 10px;
-    color: var(--primary);
 }
