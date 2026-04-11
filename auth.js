@@ -1,124 +1,103 @@
-// --- Global User State ---
-let isLoggedIn = false;
-let currentUser = null;
+// assets/js/modules/auth.js
 
-/**
- * دالة: معالجة تسجيل الدخول البسيط
- */
-function handleSimpleLogin() {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    if (!email || !password) {
-        alert('برجاء إدخال البريد وكلمة المرور');
-        return;
-    }
-    
-    if (!email.includes('@')) {
-        alert('البريد غير صحيح');
-        return;
-    }
-    
-    if (password.length < 3) {
-        alert('كلمة المرور قصيرة جداً');
-        return;
-    }
-    
-    // حفظ بيانات المستخدم
-    const name = email.split('@')[0];
-    currentUser = {
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        email: email,
-        city: 'cairo'
-    };
-    
-    isLoggedIn = true;
-    updateUIAfterLogin();
+// 1. استيراد دوال Firebase الأساسية
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-auth.js";
+
+// 2. إعدادات مشروعك من Firebase (استبدل هذه القيم ببيانات مشروعك الحقيقية من ملف FIREBASE_SETUP.md)
+const firebaseConfig = {
+  apiKey: "AIzaSyDDOfl6AlQQHTH_UZD-GQv6mninKHZKtgY",
+  authDomain: "makasab-pro.firebaseapp.com",
+  projectId: "makasab-pro",
+  storageBucket: "makasab-pro.firebasestorage.app",
+  messagingSenderId: "1056068624133",
+  appId: "1:1056068624133:web:e9e9ae3764c44564fda16c",
+  measurementId: "G-EJ8G6V290L"
+};
+
+// 3. تهيئة Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+// 4. ربط زر جوجل
+const googleLoginBtn = document.getElementById('google-login-btn');
+
+if (googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', () => {
+        // إضافة تأثير التحميل للزر
+        const originalText = googleLoginBtn.innerHTML;
+        googleLoginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الاتصال...';
+
+        signInWithPopup(auth, provider)
+            .then((result) => {
+                const user = result.user;
+                console.log("تم تسجيل الدخول بنجاح:", user.displayName);
+                
+                // استدعاء دالة تحديث الواجهة بعد الدخول
+                handleLoginSuccess(user.displayName, user.email);
+                
+                // إرجاع شكل الزر
+                googleLoginBtn.innerHTML = originalText;
+            })
+            .catch((error) => {
+                console.error("خطأ في تسجيل الدخول:", error);
+                googleLoginBtn.innerHTML = originalText;
+                
+                if (error.code === 'auth/unauthorized-domain') {
+                    alert("عذراً! النطاق (Domain) الحالي غير مصرح به.\nيرجى إضافة (localhost أو 127.0.0.1) في إعدادات Firebase -> Authentication -> Settings -> Authorized domains");
+                } else {
+                    alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
+                }
+            });
+    });
 }
 
-/**
- * دالة: تحديث الواجهة بعد تسجيل الدخول
- */
-function updateUIAfterLogin() {
-    isLoggedIn = true;
-
-    document.getElementById('nameInNav').innerText = currentUser.name.split(' ')[0];
-    document.getElementById('loginBtn').style.display = 'none';
-    document.getElementById('profileBtn').style.display = 'inline-block';
-
-    const bsModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-    if (bsModal) bsModal.hide();
-
-    // مسح الحقول
-    const inputs = document.getElementById('loginModal')?.querySelectorAll('input');
-    if (inputs) inputs.forEach(inp => inp.value = '');
-}
-
-/**
- * دالة: التحقق من بيانات إنشاء حساب جديد
- */
-function validateAndLogin() {
-    const nameInput = document.getElementById('newUserName');
-    const emailInput = document.getElementById('newUserEmail');
-
-    if (!nameInput.value.trim() || !emailInput.value.trim()) {
-        alert('برجاء ملء الاسم والبريد');
-        return;
+// 5. دالة تحديث الواجهة بعد نجاح الدخول (مربوطة بـ window لتعمل بشكل صحيح مع الـ module)
+window.handleLoginSuccess = function(userName, userEmail) {
+    // إغلاق نافذة التسجيل
+    const loginModalEl = document.getElementById('loginModal');
+    if(loginModalEl) {
+        const modalInstance = bootstrap.Modal.getInstance(loginModalEl) || new bootstrap.Modal(loginModalEl);
+        modalInstance.hide();
     }
 
-    if (!emailInput.value.includes('@')) {
-        alert('البريد غير صحيح');
-        return;
+    // تحديث زر الـ Header ليظهر الاسم بدلاً من "تسجيل الدخول"
+    const authSection = document.getElementById('authSection');
+    if(authSection) {
+        authSection.innerHTML = `
+            <button class="btn btn-primary btn-sm px-3 rounded-pill fw-bold" data-bs-toggle="offcanvas" data-bs-target="#profileSidebar">
+                <i class="fa-solid fa-user me-1"></i> ${userName.split(' ')[0]}
+            </button>
+        `;
     }
 
-    currentUser = {
-        name: nameInput.value,
-        email: emailInput.value,
-        city: 'cairo'
-    };
+    // تحديث بيانات الملف الشخصي (الـ Sidebar)
+    const profileName = document.getElementById('profileName');
+    const profileEmail = document.getElementById('profileEmail');
     
-    updateUIAfterLogin();
-}
+    if(profileName) profileName.value = userName;
+    if(profileEmail) profileEmail.value = userEmail;
+};
 
-/**
- * دالة: حفظ بيانات الملف الشخصي
- */
-function saveProfile() {
-    if (!isLoggedIn) {
-        alert('برجاء تسجيل الدخول أولاً');
-        return;
-    }
-
-    const name = document.getElementById('profileName').value || 'المستخدم';
-    const city = document.getElementById('profileCity').value;
-
-    if (!name || !city) {
-        alert('برجاء ملء البيانات');
-        return;
-    }
-
-    currentUser = { ...currentUser, name, city };
-    document.getElementById('nameInNav').innerText = name.split(' ')[0];
-
-    const sideBar = bootstrap.Offcanvas.getInstance(document.getElementById('profileSidebar'));
-    if (sideBar) sideBar.hide();
-
-    alert('تم حفظ البيانات بنجاح');
-}
-
-/**
- * دالة: تسجيل الخروج
- */
-function logout() {
-    isLoggedIn = false;
-    currentUser = null;
-
-    document.getElementById('loginBtn').style.display = 'inline-block';
-    document.getElementById('profileBtn').style.display = 'none';
-    document.getElementById('nameInNav').innerText = 'حسابي';
-
-    const sideBar = bootstrap.Offcanvas.getInstance(document.getElementById('profileSidebar'));
-    if (sideBar) sideBar.hide();
-
-    location.reload();
-}
+// 6. دالة تسجيل الخروج (مربوطة بزر الخروج في الـ Sidebar)
+window.logout = function() {
+    signOut(auth).then(() => {
+        console.log("تم تسجيل الخروج");
+        // إعادة الواجهة لشكلها الأصلي
+        const authSection = document.getElementById('authSection');
+        if(authSection) {
+            authSection.innerHTML = `
+                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">تسجيل الدخول</button>
+            `;
+        }
+        // إغلاق الـ Sidebar
+        const sidebarEl = document.getElementById('profileSidebar');
+        if(sidebarEl) {
+            const sidebarInstance = bootstrap.Offcanvas.getInstance(sidebarEl);
+            if(sidebarInstance) sidebarInstance.hide();
+        }
+    }).catch((error) => {
+        console.error("خطأ في تسجيل الخروج:", error);
+    });
+};
