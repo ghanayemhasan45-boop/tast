@@ -1,24 +1,29 @@
 // assets/js/modules/auth.js
 
 // 1. استيراد دوال Firebase الأساسية
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-auth.js";
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-// 2. إعدادات مشروعك من Firebase (استبدل هذه القيم ببيانات مشروعك الحقيقية من ملف FIREBASE_SETUP.md)
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDDOfl6AlQQHTH_UZD-GQv6mninKHZKtgY",
   authDomain: "makasab-pro.firebaseapp.com",
   projectId: "makasab-pro",
   storageBucket: "makasab-pro.firebasestorage.app",
   messagingSenderId: "1056068624133",
-  appId: "1:1056068624133:web:e9e9ae3764c44564fda16c",
-  measurementId: "G-EJ8G6V290L"
+  appId: "1:1056068624133:web:6c3a78425d1ceb57fda16c",
+  measurementId: "G-C3W2JTSMB5"
 };
 
-// 3. تهيئة Firebase
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const analytics = getAnalytics(app);
 const provider = new GoogleAuthProvider();
+
 
 // 4. ربط زر جوجل
 const googleLoginBtn = document.getElementById('google-login-btn');
