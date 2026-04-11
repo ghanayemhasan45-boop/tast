@@ -276,12 +276,12 @@ body {
 
 /* --- Footer Design --- */
 .main-footer {
-    background-color: var(--primary); /* نفس لون الهيدر */
+    background-color: var(--primary);
     color: rgba(255, 255, 255, 0.8);
     padding: 30px 0;
-    margin-top: 50px; /* مسافة بينه وبين المنتجات */
+    margin-top: 50px;
     text-align: center;
-    border-top: 4px solid var(--accent); /* خط أخضر جمالي من فوق */
+    border-top: 4px solid var(--accent);
 }
 
 .main-footer .brand-name {
@@ -290,7 +290,7 @@ body {
 }
 
 .main-footer .brand-name span {
-    color: var(--accent); /* كلمة "برو" بالأخضر */
+    color: var(--accent);
 }
 
 .social-links {
