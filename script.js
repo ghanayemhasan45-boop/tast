@@ -889,7 +889,6 @@ function simulateLogin() {
     // هنسيب دي بسيطة للتجربة السريعة لو حبيت
     validateAndLogin(); 
 }
-function simulateGoogleLogin() { simulateLogin(); }
 function saveProfile() {
     if(!isLoggedIn) return;
     const newName = document.getElementById('profileName').value;
@@ -905,26 +904,6 @@ function logout() { location.reload(); }
 // --- Init ---
 renderProducts();
 
-// دالة لحساب الربح لما تغير السعر الإجمالي بإيدك
-function calculateProfitManual() {
-    let finalTotal = parseFloat(document.getElementById('finalTotalInput').value) || 0;
-    
-    // نجيب التكلفة والشحن من الصفحة
-    let wholesale = parseFloat(document.getElementById('summaryWholesale').innerText) || 0;
-    let shipping = parseFloat(document.getElementById('summaryShipping').innerText) || 0;
-
-    // معادلة الربح الجديدة
-    let newProfit = finalTotal - (wholesale + shipping);
-    
-    // تحديث رقم الربح في الشاشة
-    let profitEl = document.getElementById('summaryProfit');
-    profitEl.innerText = newProfit + ' ج.م';
-    
-    // تلوين الربح (أحمر لو خسارة، أخضر لو مكسب)
-    if(newProfit < 0) profitEl.className = "text-danger fw-bold";
-    else profitEl.className = "text-success fw-bold";
-}
-// دالة لحساب الربح لما تغير السعر الإجمالي بإيدك
 function calculateProfitManual() {
     let finalTotal = parseFloat(document.getElementById('finalTotalInput').value) || 0;
     

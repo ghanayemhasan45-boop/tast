@@ -200,7 +200,7 @@ const products = [
         image: "https://mesrshop.com/wp-content/uploads/2024/08/cltd08syn01u401g94ds44yrm_CF602CD4-D163-457A-B52C-2CBC1E623128_11zon.webp",
         desc: "براند G-Tab الأصلي، شاشة دائرية عالية الوضوح، بطارية تدوم أسبوع."
     },
-    // --- الفئة: سماعات ---
+    // --- الفئة: سماعات (15 منتج) ---
     {
         id: 2,
         title: "سماعة P9 Pro Max عازلة للضوضاء",
@@ -360,7 +360,7 @@ const products = [
         sales: 600,
         image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=500&q=80",
         desc: "صوت عالي ومحيطي، يدعم الفلاشة وكارت الميموري، حجم صغير."
-    },
+    }, 
     {
         id: 6,
         title: "سماعة ايفون سلك حراري كوالتي عالي",
@@ -381,7 +381,7 @@ const products = [
         image: "https://elmaktabatech.com/wp-content/uploads/2024/02/418151592_298282699932339_2238320010379355775_n.jpg",
         desc: "اقتران تلقائي بالايفون، عزل ضوضاء."
     },
-    // --- الفئة: شواحن ---
+    // --- الفئة: شواحن (10 منتجات) ---
     {
         id: 301,
         title: "رأس شاحن 20 وات (PD) للايفون - سريع",
@@ -492,7 +492,7 @@ const products = [
         image: "https://m.media-amazon.com/images/I/71xVafk8vzL._SL1500_.jpg",
         desc: "وMacBook Pro، وiPad Pro، وDell XPS، وSamsung Galaxy S25/S24/S22 Ultra، وSwitch، وPixel، (100 واط، 2 متر)"
     },
-    // --- الفئة: باور بنك ---
+    // --- الفئة: باور بنك (4 منتجات) ---
     {
         id: 401,
         title: "باور بنك جيروم 10000 مللي (JR-T012) - شاشة",
