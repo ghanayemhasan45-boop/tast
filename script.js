@@ -845,12 +845,32 @@ function validateAndLogin() {
     // التحقق السريع
     if (name.length < 5) { showError("الاسم قصير جداً"); return; }
     if (!email.includes('@')) { showError("البريد الإلكتروني غير صحيح"); return; }
+    if (pass.length < 6) { showError("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
     
     // تسجيل الدخول
     isLoggedIn = true;
     currentUser = { name: name, email: email, phone: phone };
     
     // تحديث الشاشة
+    updateUIAfterLogin();
+}
+
+function handleSimpleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    if (!email || !password) {
+        alert('يرجى إدخال البريد الإلكتروني وكلمة المرور للدخول');
+        return;
+    }
+
+    isLoggedIn = true;
+    currentUser = {
+        name: email.split('@')[0].replace(/[^a-zA-Z -]+/g, ' ') || 'مستخدم',
+        email: email,
+        phone: ''
+    };
+
     updateUIAfterLogin();
 }
 
