@@ -1,10 +1,8 @@
 // assets/js/modules/auth.js
 
-// 1. استيراد دوال Firebase الأساسية
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
-import { getAuth, signInWithPopup, signOut, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+/// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -16,14 +14,13 @@ const firebaseConfig = {
   projectId: "makasab-pro",
   storageBucket: "makasab-pro.firebasestorage.app",
   messagingSenderId: "1056068624133",
-  appId: "1:1056068624133:web:6c3a78425d1ceb57fda16c",
-  measurementId: "G-C3W2JTSMB5"
+  appId: "1:1056068624133:web:ad9e417d207b8fd2fda16c",
+  measurementId: "G-ZE4YJ931FS"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 
