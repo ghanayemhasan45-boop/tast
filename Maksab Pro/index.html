@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكسب برو - منصة الدروب شيبينج</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg fixed-top">
+    <div class="container d-flex justify-content-between">
+        
+        <div class="d-flex align-items-center gap-4">
+            <a class="navbar-brand mb-0" href="#">مكسب <span>برو</span></a>
+            
+            <div class="nav-icon-btn position-relative" title="المحفظة" data-bs-toggle="modal" data-bs-target="#walletModal" onclick="updateWalletUI()">
+                <i class="fa-solid fa-wallet"></i>
+                <span id="walletNotif" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
+            </div>
+
+            <div class="nav-icon-btn position-relative" title="سلة الطلبات" data-bs-toggle="modal" data-bs-target="#cartModal">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span class="badge-counter" id="cartCount">0</span>
+            </div>
+        </div>
+
+        <div id="authSection">
+            <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">تسجيل الدخول</button>
+        </div>
+
+    </div>
+</nav>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="profileSidebar">
+        <div class="offcanvas-header bg-light">
+            <h5 class="offcanvas-title">الملف الشخصي</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form id="profileForm">
+                <div class="mb-3 text-center">
+                    <div class="profile-avatar-placeholder">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label>الاسم بالكامل</label>
+                    <input type="text" class="form-control" id="profileName" value="تاجر جديد">
+                </div>
+                <div class="mb-3">
+                    <label>رقم الهاتف</label>
+                    <input type="tel" class="form-control" id="profilePhone" value="">
+                </div>
+                <div class="mb-3">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" class="form-control" id="profileEmail" value="" readonly>
+                </div>
+                <button type="button" class="btn btn-primary w-100" onclick="saveProfile()">حفظ التعديلات</button>
+                <hr>
+                <button type="button" class="btn btn-danger w-100" onclick="logout()">تسجيل الخروج</button>
+            </form>
+        </div>
+    </div>
+
+    <section class="hero-section">
+        <div class="container">
+            <h1>ابدأ تجارتك في الإلكترونيات.. بدون رأس مال!</h1>
+            <p class="mb-4">أكثر من 500 منتج بسعر الجملة.. شحن سريع.. أرباح فورية</p>
+        </div>
+    </section>
+
+    <div class="container pb-5">
+        
+        <div class="filter-bar row g-3 align-items-center">
+            <div class="col-md-4">
+                <select class="form-select" id="categoryFilter" onchange="renderProducts()">
+                    <option value="all">كل الأقسام</option>
+                    <option value="ساعات">ساعات ذكية</option>
+                    <option value="سماعات">سماعات (Headphones/Airpods)</option>
+                    <option value="شواحن">شواحن وكابلات</option>
+                    <option value="باور">باور بنك</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="sortFilter" onchange="renderProducts()">
+                    <option value="default">الترتيب الافتراضي</option>
+                    <option value="profit_high">الربح: من الأعلى للأقل</option>
+                    <option value="profit_low">الربح: من الأقل للأعلى</option>
+                    <option value="bestseller">الأكثر مبيعاً</option>
+                </select>
+            </div>
+            <div class="col-md-4 text-start">
+                <small class="text-muted" id="productsCount">يتم عرض المنتجات...</small>
+            </div>
+        </div>
+
+        <div class="row g-4" id="productsContainer">
+            </div>
+
+    </div>
+
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <ul class="nav nav-tabs nav-fill mb-4" id="authTabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab">تسجيل دخول</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#signupTab">إنشاء حساب</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="loginTab">
+                            <input type="email" class="form-control mb-3" placeholder="البريد الإلكتروني">
+                            <input type="password" class="form-control mb-3" placeholder="كلمة المرور">
+                            <button class="btn btn-primary w-100 mb-3" onclick="simulateLogin()">دخول</button>
+                            
+                            <div class="text-center mb-3">
+                                <span class="text-muted">أو</span>
+                            </div>
+                            <button id="google-login-btn" class="btn btn-outline-dark w-100 d-flex align-items-center justify-content-center gap-2 py-2">
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
+                                تسجيل الدخول بواسطة جوجل
+                            </button>
+                        </div>
+                       <div class="tab-pane fade" id="signupTab">
+                        <div id="signupAlert" class="alert alert-danger d-none small"></div>
+    
+                        <input type="text" id="newUserName" class="form-control mb-3" placeholder="الاسم بالكامل (ثلاثي)">
+    
+                        <input type="email" id="newUserEmail" class="form-control mb-3" placeholder="البريد الإلكتروني (example@gmail.com)">
+    
+                        <input type="tel" id="newUserPhone" class="form-control mb-3" placeholder="رقم الهاتف (01xxxxxxxxx)" maxlength="11">
+    
+                        <input type="password" id="newUserPass" class="form-control mb-3" placeholder="كلمة المرور (6 أرقام على الأقل)">
+    
+                        <button class="btn btn-primary w-100" onclick="validateAndLogin()">إنشاء حساب جديد</button>
+                     </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" id="productModalContent">
+                </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="cartModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">سلة الطلبات</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-lg-7 mb-4">
+                            <h6 class="border-bottom pb-2">المنتجات المختارة</h6>
+                            <div id="cartItemsContainer">
+                                <p class="text-center text-muted py-4">السلة فارغة</p>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <div class="bg-light p-3 rounded">
+                                <h6 class="fw-bold mb-3">بيانات العميل (المشتري)</h6>
+                                <form id="checkoutForm">
+                                    <div class="mb-2">
+                                        <label class="small">الاسم بالكامل</label>
+                                        <input type="text" id="custName" class="form-control form-control-sm" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="small">رقم الهاتف (أساسي)</label>
+                                        <input type="tel" id="custPhone1" class="form-control form-control-sm" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="small">رقم الهاتف (احتياطي)</label>
+                                        <input type="tel" id="custPhone2" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="small">العنوان بالتفصيل</label>
+                                        <textarea id="custAddress" class="form-control form-control-sm" rows="2" required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="small">المحافظة (لتحديد الشحن)</label>
+                                        <select id="custCity" class="form-select form-select-sm" onchange="updateTotal()" required>
+                                            <option value="">اختر المحافظة...</option>
+                                            <option value="cairo">القاهرة (50 ج.م)</option>
+                                            <option value="giza">الجيزة (65 ج.م)</option>
+                                            <option value="other">محافظات أخرى (يتم التحديد لاحقاً)</option>
+                                        </select>
+                                    </div>
+
+                                    <hr>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>إجمالي المنتجات (جملة):</span>
+                                        <span id="summaryWholesale">0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>مصاريف الشحن:</span>
+                                        <span id="summaryShipping" class="text-danger">0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <strong>صافي ربحك:</strong>
+                                        <strong id="summaryProfit" class="text-success">0</strong>
+                                    
+                                    
+                                        <div class="mb-3 bg-white p-2 rounded border border-warning">
+                                        <label class="small fw-bold mb-1">المبلغ الإجمالي المتفق عليه (شامل الشحن)</label>
+                                        <div class="input-group">
+                                            <input type="number" id="finalTotalInput" class="form-control fw-bold fs-5 text-primary" 
+                                                   oninput="calculateProfitManual()" placeholder="اكتب السعر هنا">
+                                            <span class="input-group-text">ج.م</span>
+                                        </div>
+                                    </div>
+
+
+                                    <button type="button" class="whatsapp-btn" onclick="sendOrderToWhatsapp()">
+                                        <i class="fa-brands fa-whatsapp me-2"></i> إرسال الطلب الآن
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="walletModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 overflow-hidden">
+            <div class="modal-header border-0 bg-light">
+                <h5 class="modal-title fw-bold">محفظة الأرباح</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                
+                <div class="wallet-card mb-4 text-center text-white p-4 rounded-4" style="background: linear-gradient(135deg, #2D1B69 0%, #00D084 100%); box-shadow: 0 10px 20px rgba(45, 27, 105, 0.3);">
+                    <p class="mb-1 opacity-75">رصيدك الحالي القابل للسحب</p>
+                    <h1 class="fw-bold mb-3 display-4"><span id="walletBalance">0</span> <small class="fs-6">ج.م</small></h1>
+                    <button class="btn btn-light text-primary fw-bold rounded-pill px-4" onclick="toggleWithdrawForm()">
+                        <i class="fa-solid fa-money-bill-transfer"></i> سحب الرصيد
+                    </button>
+                </div>
+
+                <div id="withdrawForm" class="d-none bg-light p-3 rounded mb-3 border">
+                    <h6 class="fw-bold mb-3">طلب سحب أرباح</h6>
+                    <div class="mb-2">
+                        <label class="small text-muted">وسيلة السحب</label>
+                        <select class="form-select mb-2" id="withdrawMethod">
+                            <option value="vodafone">فودافون كاش</option>
+                            <option value="instapay">انستا باي (InstaPay)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small text-muted">رقم المحفظة / العنوان</label>
+                        <input type="tel" class="form-control" id="withdrawNumber" placeholder="01xxxxxxxxx">
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted">المبلغ المراد سحبه</label>
+                        <input type="number" class="form-control" id="withdrawAmount" placeholder="الحد الأدنى 50 ج.م">
+                    </div>
+                    <button class="btn btn-success w-100" onclick="confirmWithdraw()">تأكيد السحب</button>
+                </div>
+
+                <h6 class="fw-bold border-bottom pb-2 mb-3">سجل المعاملات</h6>
+                <div id="transactionList" class="transaction-list" style="max-height: 200px; overflow-y: auto;">
+                    <p class="text-muted text-center small py-3">لا توجد معاملات بعد</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <p class="mb-0">
+                    جميع الحقوق محفوظة © 2026 لموقع 
+                    <span class="brand-name">مكسب <span>برو</span></span>
+                </p>
+                <div class="social-links mt-2">
+                    <a href="#"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="#"><i class="fa-brands fa-whatsapp"></i></a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="login.js"></script> <script src="script.js"></script>
+
+</body>
+</html>

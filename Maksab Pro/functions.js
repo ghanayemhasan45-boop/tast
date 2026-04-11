@@ -1,0 +1,495 @@
+// --- 2. State ---
+let cart = [];
+let isLoggedIn = false;
+let currentUser = null;
+
+// --- 3. UI & Rendering ---
+function renderProducts() {
+    const container = document.getElementById('productsContainer');
+    const category = document.getElementById('categoryFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+
+    let filtered = products.filter(p => category === 'all' || p.category === category);
+
+    if (sort === 'profit_high') filtered.sort((a, b) => b.profit - a.profit);
+    if (sort === 'profit_low') filtered.sort((a, b) => a.profit - b.profit);
+    if (sort === 'bestseller') filtered.sort((a, b) => b.sales - a.sales);
+
+    document.getElementById('productsCount').innerText = `عدد المنتجات: ${filtered.length}`;
+
+    container.innerHTML = filtered.map(p => {
+        const suggestedPrice = p.price + p.profit + 50;
+        let badgeHtml = '';
+        if (p.sales > 100) badgeHtml = `<div class="card-badge badge-orange">الأكثر مبيعاً</div>`;
+        else if (p.id > 4) badgeHtml = `<div class="card-badge badge-red">وصل حديثاً</div>`;
+
+        return `
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="product-card">
+                ${badgeHtml}
+                <img src="${p.image}" class="card-img-top" onclick="showProductDetails(${p.id})" alt="${p.title}">
+                <div class="card-body">
+                    <h3 class="product-title" title="${p.title}">${p.title}</h3>
+                    <div class="price-details">
+                        <div class="price-row">
+                            <span>سعر الجملة (عليك):</span>
+                            <span class="fw-bold text-dark">${p.price} ج.م</span>
+                        </div>
+                        <div class="price-row">
+                            <span>سعر البيع المقترح:</span>
+                            <span class="price-strike">${suggestedPrice} ج.م</span>
+                        </div>
+                    </div>
+                    <div class="profit-row">
+                        <span class="profit-label">صافي ربحك المتوقع:</span>
+                        <span class="profit-value">
+                            ${p.profit} ج.م
+                            <i class="fa-solid fa-money-bill-wave text-warning ms-1"></i>
+                        </span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-blue-solid" onclick="addToCart(${p.id}, this)">
+                            <i class="fa-solid fa-cart-plus"></i>
+                            إضافة لطلباتي
+                        </button>
+                        <button class="btn-white-outline" onclick="downloadProductResources(${p.id})">
+                            <i class="fa-solid fa-download"></i>
+                            تحميل الصور
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    }).join('');
+}
+
+function showProductDetails(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    const modalHtml = `
+        <div class="modal-header">
+            <h5 class="modal-title fw-bold">${p.title}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <img src="${p.image}" class="img-fluid rounded shadow-sm">
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-primary fw-bold">الوصف:</h6>
+                    <p class="text-muted">${p.desc}</p>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>سعر الجملة:</span>
+                        <strong class="fs-5">${p.price} ج.م</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>الربح المقترح:</span>
+                        <strong class="text-success fs-5">${p.profit} ج.م</strong>
+                    </div>
+                    <button class="btn btn-primary w-100 mb-2" onclick="addToCart(${p.id}); document.querySelector('#productModal .btn-close').click();">أضف للسلة</button>
+                    <button class="btn btn-outline-dark w-100" onclick="downloadProductResources(${p.id})">تحميل الصور والوصف</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('productModalContent').innerHTML = modalHtml;
+    new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+
+function downloadProductResources(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    alert(`جاري تحميل صور ووصف المنتج: ${p.title}\n(سيتم فتح الصورة في نافذة جديدة)`);
+    window.open(p.image, '_blank');
+}
+
+// --- 4. Cart Logic ---
+function addToCart(id, btnElement) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    cart.push({
+        ...p,
+        userSellingPrice: p.price + p.profit,
+        cartId: Date.now() + Math.floor(Math.random() * 1000)
+    });
+
+    updateCartUI();
+
+    if (btnElement && typeof btnElement.innerHTML === 'string') {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = '<i class="fa-solid fa-check"></i> تم';
+        setTimeout(() => { btnElement.innerHTML = originalText; }, 1000);
+    }
+}
+
+function removeFromCart(cartId) {
+    cart = cart.filter(item => item.cartId !== cartId);
+    updateCartUI();
+}
+
+function updateCartItemPrice(cartId, newPrice) {
+    const item = cart.find(x => x.cartId === cartId);
+    if (item) {
+        item.userSellingPrice = parseFloat(newPrice) || 0;
+        updateTotal();
+    }
+}
+
+function updateCartUI() {
+    document.getElementById('cartCount').innerText = cart.length;
+    const container = document.getElementById('cartItemsContainer');
+
+    if (cart.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted py-4">السلة فارغة</p>';
+        document.getElementById('summaryWholesale').innerText = '0';
+        document.getElementById('summaryProfit').innerText = '0';
+        updateTotal();
+        return;
+    }
+
+    container.innerHTML = cart.map(item => `
+        <div class="d-flex gap-3 mb-3 border-bottom pb-3 align-items-center">
+            <img src="${item.image}" style="width:60px; height:60px; object-fit:cover; border-radius:8px">
+            <div class="flex-grow-1">
+                <h6 class="mb-1 small fw-bold">${item.title}</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted x-small">جملة: ${item.price}</span>
+                    <div class="input-group input-group-sm" style="width: 130px;">
+                        <span class="input-group-text bg-light">بيع</span>
+                        <input type="number" class="form-control" value="${item.userSellingPrice}" onchange="updateCartItemPrice(${item.cartId}, this.value)">
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-sm text-danger" onclick="removeFromCart(${item.cartId})">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+    `).join('');
+
+    updateTotal();
+}
+
+function updateTotal() {
+    const wholesaleTotal = cart.reduce((sum, item) => sum + item.price, 0);
+    const sellingTotal = cart.reduce((sum, item) => sum + parseFloat(item.userSellingPrice || 0), 0);
+
+    const city = document.getElementById('custCity').value;
+    let shipping = 0;
+    if (city === 'cairo') shipping = 50;
+    else if (city === 'giza') shipping = 65;
+
+    const autoTotal = sellingTotal + shipping;
+    const profit = sellingTotal - wholesaleTotal;
+
+    document.getElementById('summaryWholesale').innerText = wholesaleTotal;
+    document.getElementById('summaryShipping').innerText = shipping;
+    document.getElementById('finalTotalInput').value = autoTotal;
+    document.getElementById('summaryProfit').innerText = profit + ' ج.م';
+}
+
+function sendOrderToWhatsapp() {
+    if (cart.length === 0) {
+        alert('السلة فارغة!');
+        return;
+    }
+
+    const name = document.getElementById('custName').value;
+    const phone1 = document.getElementById('custPhone1').value;
+    const phone2 = document.getElementById('custPhone2').value;
+    const address = document.getElementById('custAddress').value;
+    const city = document.getElementById('custCity').value;
+
+    if (!name || !phone1 || !address || !city) {
+        alert('برجاء ملء جميع بيانات العميل الأساسية');
+        return;
+    }
+
+    let productsMsg = cart.map((item, index) => {
+        return `${index + 1}. ${item.title}\n   - سعر البيع: ${item.userSellingPrice} ج.م`;
+    }).join('\n');
+
+    let shippingCost = city === 'cairo' ? 50 : (city === 'giza' ? 65 : 'يحدد لاحقاً');
+
+    let totalElement = document.getElementById('finalTotalInput');
+    let total = totalElement ? totalElement.value : '0';
+
+    let messageText = `*طلب جديد من الموقع* 📦\n\n`;
+    messageText += `👤 *بيانات العميل:*\n`;
+    messageText += `• الاسم: ${name}\n`;
+    messageText += `• موبايل 1: ${phone1}\n`;
+    messageText += `• موبايل 2: ${phone2}\n`;
+    messageText += `• العنوان: ${address}\n`;
+    messageText += `• المحافظة: ${city}\n\n`;
+    messageText += `🛒 *المنتجات:*\n${productsMsg}\n\n`;
+    messageText += `🚚 *الشحن:* ${shippingCost} ج.م\n`;
+    messageText += `💰 *الإجمالي المطلوب:* ${total} ج.م`;
+
+    let whatsappUrl = `https://wa.me/201553110124?text=${encodeURIComponent(messageText)}`;
+
+    let currentProfit = parseFloat(document.getElementById('summaryProfit').innerText) || 0;
+    if (typeof addProfitToWallet === 'function') {
+        addProfitToWallet(currentProfit, Math.floor(Math.random() * 10000));
+    }
+
+    window.open(whatsappUrl, '_blank');
+
+    // سجل المبيعات اليومية
+    const itemGroups = cart.reduce((acc, item) => {
+        if (!acc[item.id]) {
+            acc[item.id] = { id: item.id, title: item.title, qty: 0, revenue: 0, profit: 0 };
+        }
+        acc[item.id].qty += 1;
+        acc[item.id].revenue += parseFloat(item.userSellingPrice || 0);
+        acc[item.id].profit += parseFloat(item.userSellingPrice || 0) - parseFloat(item.price || 0);
+        return acc;
+    }, {});
+
+    addOrderToDailySummary({
+        date: new Date().toLocaleDateString('ar-EG'),
+        total: parseFloat(total) || 0,
+        profit: currentProfit,
+        items: cart.length,
+        itemsDetails: Object.values(itemGroups)
+    });
+    renderDailySalesSummary();
+}
+
+// --- ملخص المبيعات اليومية ---
+function loadDailySales() {
+    const data = localStorage.getItem('dropshipDailySales');
+    return data ? JSON.parse(data) : [];
+}
+
+function saveDailySales(sales) {
+    localStorage.setItem('dropshipDailySales', JSON.stringify(sales));
+}
+
+function addOrderToDailySummary(order) {
+    let sales = loadDailySales();
+    sales.push(order);
+    saveDailySales(sales);
+}
+
+function renderDailySalesSummary() {
+    const summaryContainer = document.getElementById('dailySalesSummary');
+    if (!summaryContainer) return;
+
+    const sales = loadDailySales();
+    const today = new Date().toLocaleDateString('ar-EG');
+    const todaysSales = sales.filter(s => s.date === today);
+
+    const totalOrders = todaysSales.length;
+    const totalRevenue = todaysSales.reduce((sum, i) => sum + (parseFloat(i.total) || 0), 0);
+    const totalProfit = todaysSales.reduce((sum, i) => sum + (parseFloat(i.profit) || 0), 0);
+
+    // تجميع مبيعات المنتج عبر كل الطلبات
+    const productMap = {};
+    todaysSales.forEach(order => {
+        if (!order.itemsDetails) return;
+        order.itemsDetails.forEach(item => {
+            if (!productMap[item.id]) {
+                productMap[item.id] = { ...item };
+            } else {
+                productMap[item.id].qty += item.qty;
+                productMap[item.id].revenue += item.revenue;
+                productMap[item.id].profit += item.profit;
+            }
+        });
+    });
+
+    const productSummaryItems = Object.values(productMap);
+
+    summaryContainer.innerHTML = `
+        <div class="daily-summary-card p-3 rounded border">
+            <h5>ملخص المبيعات اليوم (${today})</h5>
+            <p>عدد الطلبات: <strong>${totalOrders}</strong></p>
+            <p>إجمالي قيمة البيع: <strong>${totalRevenue.toFixed(2)} ج.م</strong></p>
+            <p>إجمالي الربح: <strong>${totalProfit.toFixed(2)} ج.م</strong></p>
+            <hr>
+            <h6>ملخص بيع كل منتج اليوم</h6>
+            ${productSummaryItems.length === 0 ? '<p class="small text-muted">لا توجد منتجات.</p>' : ''}
+            ${productSummaryItems.map(item => `
+                <div class="d-flex justify-content-between align-items-center py-1 border-top">
+                    <span>${item.title} (الكمية: ${item.qty})</span>
+                    <span>الإيرادات: ${item.revenue.toFixed(2)} ج.م / الربح: ${item.profit.toFixed(2)} ج.م</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// --- 5. Auth & Profile ---
+function updateUIAfterLogin() {
+    const modalEl = document.getElementById('loginModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    document.getElementById('authSection').innerHTML = `
+        <div class="user-profile-trigger" data-bs-toggle="offcanvas" data-bs-target="#profileSidebar">
+            <i class="fa-solid fa-user-circle"></i>
+            <span>${currentUser.name}</span>
+        </div>
+    `;
+
+    if (document.getElementById('profileName')) document.getElementById('profileName').value = currentUser.name;
+    if (document.getElementById('profileEmail')) document.getElementById('profileEmail').value = currentUser.email;
+    if (document.getElementById('profilePhone')) document.getElementById('profilePhone').value = currentUser.phone || "غير مسجل";
+
+    alert(`تم تسجيل الدخول بنجاح! \nأهلاً بك يا: ${currentUser.name}`);
+}
+
+function validateAndLogin() {
+    const name = document.getElementById('newUserName').value.trim();
+    const email = document.getElementById('newUserEmail').value.trim();
+    const phone = document.getElementById('newUserPhone').value.trim();
+    const pass = document.getElementById('newUserPass').value.trim();
+    const alertBox = document.getElementById('signupAlert');
+
+    function showError(msg) {
+        alertBox.innerText = msg;
+        alertBox.classList.remove('d-none');
+    }
+
+    if (name.length < 5) { showError("الاسم قصير جداً"); return; }
+    if (!email.includes('@')) { showError("البريد الإلكتروني غير صحيح"); return; }
+    if (pass.length < 6) { showError("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+
+    isLoggedIn = true;
+    currentUser = { name, email, phone };
+    updateUIAfterLogin();
+}
+
+function simulateGoogleLogin() {
+    const btn = event?.target?.closest('button');
+    if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاتصال...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            isLoggedIn = true;
+            currentUser = {
+                name: "أحمد (حساب Google)",
+                email: "ahmed.google@gmail.com",
+                phone: "01000000000"
+            };
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            updateUIAfterLogin();
+        }, 1500);
+    } else {
+        validateAndLogin();
+    }
+}
+
+function simulateLogin() {
+    validateAndLogin();
+}
+
+function saveProfile() {
+    if (!isLoggedIn) return;
+    const newName = document.getElementById('profileName').value;
+    currentUser.name = newName;
+    const profileNameEl = document.querySelector('.user-profile-trigger span');
+    if (profileNameEl) profileNameEl.innerText = newName;
+
+    const offcanvasEl = document.getElementById('profileSidebar');
+    const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+    if (offcanvas) offcanvas.hide();
+    alert('تم حفظ البيانات بنجاح');
+}
+
+function logout() {
+    location.reload();
+}
+
+// --- 6. Profit Edit ---
+function calculateProfitManual() {
+    let finalTotal = parseFloat(document.getElementById('finalTotalInput').value) || 0;
+    let wholesale = parseFloat(document.getElementById('summaryWholesale').innerText) || 0;
+    let shipping = parseFloat(document.getElementById('summaryShipping').innerText) || 0;
+    let newProfit = finalTotal - (wholesale + shipping);
+    let profitEl = document.getElementById('summaryProfit');
+    profitEl.innerText = newProfit + ' ج.م';
+
+    if (newProfit < 0) profitEl.className = "text-danger fw-bold";
+    else profitEl.className = "text-success fw-bold";
+}
+
+// --- 7. Wallet System ---
+let wallet = { balance: 0, history: [] };
+
+function addProfitToWallet(amount, orderId) {
+    if (amount <= 0) return;
+
+    wallet.balance += amount;
+    wallet.history.unshift({
+        type: 'deposit',
+        amount: amount,
+        desc: `ربح طلب #${orderId}`,
+        date: new Date().toLocaleDateString('ar-EG'),
+        time: new Date().toLocaleTimeString('ar-EG')
+    });
+
+    document.getElementById('walletNotif').classList.remove('d-none');
+    localStorage.setItem('dropshipWallet', JSON.stringify(wallet));
+}
+
+function updateWalletUI() {
+    const savedWallet = localStorage.getItem('dropshipWallet');
+    if (savedWallet) wallet = JSON.parse(savedWallet);
+
+    document.getElementById('walletBalance').innerText = wallet.balance;
+    const listContainer = document.getElementById('transactionList');
+
+    if (!wallet.history.length) {
+        listContainer.innerHTML = '<p class="text-muted text-center small py-3">لا توجد معاملات بعد</p>';
+        return;
+    }
+
+    listContainer.innerHTML = wallet.history.map(item => `
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div>
+                <div class="fw-bold small">${item.desc}</div>
+                <div class="text-muted" style="font-size: 10px;">${item.date} - ${item.time}</div>
+            </div>
+            <div class="fw-bold ${item.type === 'deposit' ? 'text-success' : 'text-danger'}">
+                ${item.type === 'deposit' ? '+' : '-'} ${item.amount} ج.م
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleWithdrawForm() {
+    document.getElementById('withdrawForm').classList.toggle('d-none');
+}
+
+function confirmWithdraw() {
+    const amount = parseFloat(document.getElementById('withdrawAmount').value);
+    const number = document.getElementById('withdrawNumber').value;
+    const method = document.getElementById('withdrawMethod').options[document.getElementById('withdrawMethod').selectedIndex].text;
+
+    if (!amount || amount <= 0) { alert("برجاء إدخال مبلغ صحيح"); return; }
+    if (amount > wallet.balance) { alert("رصيدك غير كافي للسحب!"); return; }
+    if (!number || number.length < 11) { alert("برجاء إدخال رقم محفظة صحيح"); return; }
+
+    wallet.balance -= amount;
+    wallet.history.unshift({
+        type: 'withdraw',
+        amount: amount,
+        desc: `سحب (${method})`,
+        date: new Date().toLocaleDateString('ar-EG'),
+        time: new Date().toLocaleTimeString('ar-EG')
+    });
+
+    localStorage.setItem('dropshipWallet', JSON.stringify(wallet));
+    updateWalletUI();
+    toggleWithdrawForm();
+    alert(`تم تقديم طلب سحب مبلغ ${amount} ج.م بنجاح!\nسيتم التحويل إلى ${number} خلال 24 ساعة.`);
+}
