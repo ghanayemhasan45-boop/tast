@@ -2,6 +2,36 @@
 let cart = [];
 let isLoggedIn = false;
 let currentUser = null;
+const ADMIN_EMAILS = ['admin@makasabpro.com', 'ghanayemhasan45@gmail.com'];
+const CURRENT_USER_KEY = 'currentUser';
+
+function loadStoredUser() {
+    const stored = localStorage.getItem(CURRENT_USER_KEY);
+    if (!stored) return null;
+    try {
+        return JSON.parse(stored);
+    } catch {
+        return null;
+    }
+}
+
+function saveStoredUser(user) {
+    if (!user) {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        return;
+    }
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+}
+
+function isAdminUser(user) {
+    return user?.isAdmin || ADMIN_EMAILS.includes(user?.email);
+}
+
+function updateAdminLinkVisibility() {
+    const link = document.getElementById('adminPanelLink');
+    if (!link) return;
+    link.classList.toggle('d-none', !isAdminUser(currentUser));
+}
 
 // --- 3. UI & Rendering ---
 function renderProducts() {
@@ -193,16 +223,34 @@ function updateTotal() {
     document.getElementById('summaryProfit').innerText = profit + ' ج.م';
 }
 
-function sendOrderToWhatsapp() {
+const ORDER_STORAGE_KEY = 'dropshipOrders';
+const ORDER_NOTIFICATIONS_KEY = 'dropshipOrderNotifications';
+
+function loadOrders() {
+    const data = localStorage.getItem(ORDER_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+}
+
+function saveOrders(orders) {
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
+}
+
+function addOrder(order) {
+    const orders = loadOrders();
+    orders.unshift(order);
+    saveOrders(orders);
+}
+
+function submitOrder() {
     if (cart.length === 0) {
         alert('السلة فارغة!');
         return;
     }
 
-    const name = document.getElementById('custName').value;
-    const phone1 = document.getElementById('custPhone1').value;
-    const phone2 = document.getElementById('custPhone2').value;
-    const address = document.getElementById('custAddress').value;
+    const name = document.getElementById('custName').value.trim();
+    const phone1 = document.getElementById('custPhone1').value.trim();
+    const phone2 = document.getElementById('custPhone2').value.trim();
+    const address = document.getElementById('custAddress').value.trim();
     const city = document.getElementById('custCity').value;
 
     if (!name || !phone1 || !address || !city) {
@@ -210,36 +258,45 @@ function sendOrderToWhatsapp() {
         return;
     }
 
-    let productsMsg = cart.map((item, index) => {
-        return `${index + 1}. ${item.title}\n   - سعر البيع: ${item.userSellingPrice} ج.م`;
-    }).join('\n');
+    const totalElement = document.getElementById('finalTotalInput');
+    const total = parseFloat(totalElement ? totalElement.value : '0') || 0;
+    const shippingCost = city === 'cairo' ? 50 : (city === 'giza' ? 65 : 0);
+    const currentProfit = parseFloat(document.getElementById('summaryProfit').innerText) || 0;
 
-    let shippingCost = city === 'cairo' ? 50 : (city === 'giza' ? 65 : 'يحدد لاحقاً');
+    const items = cart.map(item => ({
+        id: item.id,
+        title: item.title,
+        qty: 1,
+        wholesale: item.price,
+        selling: parseFloat(item.userSellingPrice || 0)
+    }));
 
-    let totalElement = document.getElementById('finalTotalInput');
-    let total = totalElement ? totalElement.value : '0';
+    const order = {
+        id: `order_${Date.now()}`,
+        date: new Date().toLocaleString('ar-EG'),
+        customer: {
+            name,
+            phone1,
+            phone2,
+            address,
+            city,
+            email: currentUser?.email || ''
+        },
+        items,
+        total,
+        shippingCost,
+        profit: currentProfit,
+        status: 'pending',
+        createdAt: Date.now(),
+        notification: ''
+    };
 
-    let messageText = `*طلب جديد من الموقع* 📦\n\n`;
-    messageText += `👤 *بيانات العميل:*\n`;
-    messageText += `• الاسم: ${name}\n`;
-    messageText += `• موبايل 1: ${phone1}\n`;
-    messageText += `• موبايل 2: ${phone2}\n`;
-    messageText += `• العنوان: ${address}\n`;
-    messageText += `• المحافظة: ${city}\n\n`;
-    messageText += `🛒 *المنتجات:*\n${productsMsg}\n\n`;
-    messageText += `🚚 *الشحن:* ${shippingCost} ج.م\n`;
-    messageText += `💰 *الإجمالي المطلوب:* ${total} ج.م`;
+    addOrder(order);
 
-    let whatsappUrl = `https://wa.me/201553110124?text=${encodeURIComponent(messageText)}`;
-
-    let currentProfit = parseFloat(document.getElementById('summaryProfit').innerText) || 0;
     if (typeof addProfitToWallet === 'function') {
-        addProfitToWallet(currentProfit, Math.floor(Math.random() * 10000));
+        addProfitToWallet(currentProfit, order.id);
     }
 
-    window.open(whatsappUrl, '_blank');
-
-    // سجل المبيعات اليومية
     const itemGroups = cart.reduce((acc, item) => {
         if (!acc[item.id]) {
             acc[item.id] = { id: item.id, title: item.title, qty: 0, revenue: 0, profit: 0 };
@@ -252,13 +309,80 @@ function sendOrderToWhatsapp() {
 
     addOrderToDailySummary({
         date: new Date().toLocaleDateString('ar-EG'),
-        total: parseFloat(total) || 0,
+        total,
         profit: currentProfit,
         items: cart.length,
         itemsDetails: Object.values(itemGroups)
     });
     renderDailySalesSummary();
+
+    cart = [];
+    updateCartUI();
+    alert('تم إرسال الطلب إلى لوحة الإدارة بنجاح. يمكنك متابعة حالة الطلب من لوحة الإدارة.');
 }
+
+function markOrderConfirmed(orderId) {
+    const orders = loadOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    order.status = 'confirmed';
+    order.confirmedAt = new Date().toLocaleString('ar-EG');
+    order.notification = 'تم استلام طلبك الآن. فريقنا يعمل على تجهيزه.';
+    saveOrders(orders);
+    saveOrderNotification(orderId, order.notification);
+}
+
+function loadOrderNotifications() {
+    const data = localStorage.getItem(ORDER_NOTIFICATIONS_KEY);
+    return data ? JSON.parse(data) : {};
+}
+
+function saveOrderNotifications(notifs) {
+    localStorage.setItem(ORDER_NOTIFICATIONS_KEY, JSON.stringify(notifs));
+}
+
+function saveOrderNotification(orderId, message) {
+    const notifs = loadOrderNotifications();
+    notifs[orderId] = { message, date: new Date().toLocaleString('ar-EG') };
+    saveOrderNotifications(notifs);
+}
+
+function getOrderNotification(orderId) {
+    const notifs = loadOrderNotifications();
+    return notifs[orderId] || null;
+}
+
+function checkCustomerOrderNotifications() {
+    if (!currentUser) return;
+    const orders = loadOrders();
+    const matchedOrder = orders.find(o => {
+        const sameEmail = currentUser.email && o.customer.email === currentUser.email;
+        const samePhone = currentUser.phone && (o.customer.phone1 === currentUser.phone || o.customer.phone2 === currentUser.phone);
+        return o.status === 'confirmed' && (sameEmail || samePhone);
+    });
+    if (!matchedOrder) return;
+
+    const notif = getOrderNotification(matchedOrder.id);
+    if (notif) {
+        alert(`📣 إشعار للعميل:\n${notif.message}`);
+        deleteOrderNotification(matchedOrder.id);
+    }
+}
+
+function deleteOrderNotification(orderId) {
+    const notifs = loadOrderNotifications();
+    if (notifs[orderId]) {
+        delete notifs[orderId];
+        saveOrderNotifications(notifs);
+    }
+}
+
+window.addEventListener('storage', (event) => {
+    if (event.key === ORDER_NOTIFICATIONS_KEY) {
+        checkCustomerOrderNotifications();
+    }
+});
 
 // --- ملخص المبيعات اليومية ---
 function loadDailySales() {
@@ -341,7 +465,30 @@ function updateUIAfterLogin() {
     if (document.getElementById('profileEmail')) document.getElementById('profileEmail').value = currentUser.email;
     if (document.getElementById('profilePhone')) document.getElementById('profilePhone').value = currentUser.phone || "غير مسجل";
 
+    saveStoredUser(currentUser);
+    updateAdminLinkVisibility();
     alert(`تم تسجيل الدخول بنجاح! \nأهلاً بك يا: ${currentUser.name}`);
+    checkCustomerOrderNotifications();
+}
+
+function handleSimpleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    if (!email || !password) {
+        alert('يرجى إدخال البريد الإلكتروني وكلمة المرور للدخول');
+        return;
+    }
+
+    isLoggedIn = true;
+    currentUser = {
+        name: email.split('@')[0].replace(/[\W_]+/g, ' ').trim() || 'مستخدم',
+        email,
+        phone: '',
+        isAdmin: ADMIN_EMAILS.includes(email)
+    };
+
+    updateUIAfterLogin();
 }
 
 function validateAndLogin() {
@@ -349,6 +496,7 @@ function validateAndLogin() {
     const email = document.getElementById('newUserEmail').value.trim();
     const phone = document.getElementById('newUserPhone').value.trim();
     const pass = document.getElementById('newUserPass').value.trim();
+    const passConfirm = document.getElementById('newUserPassConfirm').value.trim();
     const alertBox = document.getElementById('signupAlert');
 
     function showError(msg) {
@@ -359,9 +507,10 @@ function validateAndLogin() {
     if (name.length < 5) { showError("الاسم قصير جداً"); return; }
     if (!email.includes('@')) { showError("البريد الإلكتروني غير صحيح"); return; }
     if (pass.length < 6) { showError("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+    if (pass !== passConfirm) { showError("كلمة المرور وتأكيدها غير متطابقين"); return; }
 
     isLoggedIn = true;
-    currentUser = { name, email, phone };
+    currentUser = { name, email, phone, isAdmin: ADMIN_EMAILS.includes(email) };
     updateUIAfterLogin();
 }
 
@@ -406,8 +555,20 @@ function saveProfile() {
 }
 
 function logout() {
+    saveStoredUser(null);
     location.reload();
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+    const storedUser = loadStoredUser();
+    if (storedUser) {
+        currentUser = storedUser;
+        isLoggedIn = true;
+        updateAdminLinkVisibility();
+        document.getElementById('authSection')?.querySelector('button')?.remove();
+        updateUIAfterLogin();
+    }
+});
 
 // --- 6. Profit Edit ---
 function calculateProfitManual() {

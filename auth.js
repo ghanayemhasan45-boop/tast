@@ -3,7 +3,7 @@
 /// Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
-import { getAuth, signInWithPopup, signOut, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -24,7 +24,7 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-
+const ADMIN_EMAILS = ['admin@makasabpro.com', 'ghanayemhasan45@gmail.com'];
 
 // 4. ربط زر جوجل
 const googleLoginBtn = document.getElementById('google-login-btn');
@@ -84,12 +84,50 @@ window.handleLoginSuccess = function(userName, userEmail) {
     
     if(profileName) profileName.value = userName;
     if(profileEmail) profileEmail.value = userEmail;
+
+    const currentUser = {
+        name: userName,
+        email: userEmail,
+        isAdmin: ADMIN_EMAILS.includes(userEmail)
+    };
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    if (currentUser.isAdmin) {
+        document.getElementById('adminPanelLink')?.classList.remove('d-none');
+    } else {
+        document.getElementById('adminPanelLink')?.classList.add('d-none');
+    }
+};
+
+window.forgotPassword = function() {
+    const emailInput = document.getElementById('loginEmail');
+    const email = emailInput?.value.trim();
+
+    if (!email) {
+        alert('يرجى إدخال البريد الإلكتروني أولاً حتى نرسل رابط استعادة كلمة المرور.');
+        if (emailInput) emailInput.focus();
+        return;
+    }
+
+    sendPasswordResetEmail(auth, email)
+        .then(() => {
+            alert('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. تحقق من صندوق الوارد أو البريد غير المرغوب فيه.');
+        })
+        .catch((error) => {
+            console.error('خطأ في استعادة كلمة المرور:', error);
+            if (error.code === 'auth/user-not-found') {
+                alert('لم يتم العثور على حساب بهذا البريد الإلكتروني. تأكد من البريد وأعد المحاولة.');
+            } else {
+                alert('حدث خطأ أثناء إرسال الرابط: ' + error.message);
+            }
+        });
 };
 
 // 6. دالة تسجيل الخروج (مربوطة بزر الخروج في الـ Sidebar)
 window.logout = function() {
     signOut(auth).then(() => {
         console.log("تم تسجيل الخروج");
+        localStorage.removeItem('currentUser');
+        document.getElementById('adminPanelLink')?.classList.add('d-none');
         // إعادة الواجهة لشكلها الأصلي
         const authSection = document.getElementById('authSection');
         if(authSection) {

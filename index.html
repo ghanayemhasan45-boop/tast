@@ -35,8 +35,11 @@
             </div>
         </div>
 
-        <div id="authSection">
-            <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">تسجيل الدخول</button>
+        <div class="d-flex align-items-center gap-2">
+            <a id="adminPanelLink" class="btn btn-outline-light btn-sm d-none" href="admin.html">لوحة الإدارة</a>
+            <div id="authSection">
+                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">تسجيل الدخول</button>
+            </div>
         </div>
 
     </div>
@@ -113,49 +116,84 @@
     </div>
 
     <div class="modal fade" id="loginModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-0">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <ul class="nav nav-tabs nav-fill mb-4" id="authTabs" role="tablist">
-                        <li class="nav-item">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab">تسجيل دخول</button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#signupTab">إنشاء حساب</button>
-                        </li>
-                    </ul>
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="loginTab">
-                            <input type="email" class="form-control mb-3" id="loginEmail" placeholder="البريد الإلكتروني">
-                            <input type="password" class="form-control mb-3" id="loginPassword" placeholder="كلمة المرور">
-                            <button class="btn btn-primary w-100" onclick="handleSimpleLogin()">دخول</button>
-                            
-                            <div class="d-flex align-items-center my-3">
-                                <hr class="flex-grow-1">
-                                <span class="mx-2 text-muted small">أو الدخول السريع</span>
-                           <hr class="flex-grow-1">
-    
-                          <button id="google-login-btn" type="button" class="btn btn-dark w-100 d-flex align-items-center justify-content-center py-2 rounded-pill mt-3">
-    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" alt="Google" style="width: 20px; margin-left: 10px;">
-    <span>المتابعة باستخدام جوجل</span>
-</button>
-               </div>
-                       <div class="tab-pane fade" id="signupTab">
-                        <div id="signupAlert" class="alert alert-danger d-none small"></div>
-    
-                        <input type="text" id="newUserName" class="form-control mb-3" placeholder="الاسم بالكامل (ثلاثي)">
-    
-                        <input type="email" id="newUserEmail" class="form-control mb-3" placeholder="البريد الإلكتروني (example@gmail.com)">
-    
-                        <input type="tel" id="newUserPhone" class="form-control mb-3" placeholder="رقم الهاتف (01xxxxxxxxx)" maxlength="11">
-    
-                        <input type="password" id="newUserPass" class="form-control mb-3" placeholder="كلمة المرور (6 أرقام على الأقل)">
-    
-                        <button class="btn btn-primary w-100" onclick="validateAndLogin()">إنشاء حساب جديد</button>
-                     </div>
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content auth-modal">
+                <div class="modal-body p-0">
+                    <div class="auth-header text-center px-5 pt-5 pb-4">
+                        <span class="badge rounded-pill bg-white text-primary px-3 py-2 mb-3">مكسب برو</span>
+                        <h4 class="fw-bold mb-2">سجّل دخولك أو أنشئ حساب جديد</h4>
+                        <p class="text-muted mb-0">
+                    </div>
+                    <div class="p-4 auth-body">
+                        <ul class="nav nav-tabs nav-fill mb-4 auth-tabs" id="authTabs" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab">تسجيل دخول</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#signupTab">إنشاء حساب</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="loginTab">
+                                <div class="mb-4 text-center">
+                                    <h5 class="mb-2">مرحباً بك مجدداً</h5>
+                                    <p class="text-muted small mb-0">قم بتسجيل الدخول لتحصل على تجربة شراء أسرع وإدارة أفضل لحسابك.</p>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="email" class="form-control" id="loginEmail" placeholder="البريد الإلكتروني">
+                                    <label for="loginEmail">البريد الإلكتروني</label>
+                                </div>
+                                <div class="form-floating mb-2">
+                                    <input type="password" class="form-control" id="loginPassword" placeholder="كلمة المرور">
+                                    <label for="loginPassword">كلمة المرور</label>
+                                </div>
+                                <div class="d-flex justify-content-end mb-3">
+                                    <button type="button" class="btn btn-link p-0 small forgot-link" onclick="forgotPassword()">هل نسيت كلمة المرور؟</button>
+                                </div>
+                                <button type="button" class="btn btn-primary w-100 mb-3" onclick="handleSimpleLogin()">دخول</button>
+                                <div class="d-flex align-items-center my-3">
+                                    <hr class="flex-grow-1">
+                                    <span class="mx-2 text-muted small">أو</span>
+                                    <hr class="flex-grow-1">
+                                </div>
+                                <button id="google-login-btn" type="button" class="btn btn-dark w-100 d-flex align-items-center justify-content-center py-2 rounded-pill">
+                                    <i class="fa-brands fa-google me-2" style="font-size: 20px;"></i>
+                                    <span>المتابعة باستخدام جوجل</span>
+                                </button>
+                            </div>
+                            <div class="tab-pane fade" id="signupTab">
+                                <div class="mb-4 text-center">
+                                    <h5 class="mb-2">إنشاء حساب جديد</h5>
+                                    <p class="text-muted small mb-0">سجّل الآن واستمتع بخصومات ومتابعة أسرع لطلبك.</p>
+                                </div>
+                                <div id="signupAlert" class="alert alert-danger d-none small"></div>
+                                <div class="form-floating mb-3">
+                                    <input type="text" id="newUserName" class="form-control" placeholder="الاسم بالكامل (ثلاثي)">
+                                    <label for="newUserName">الاسم بالكامل</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="email" id="newUserEmail" class="form-control" placeholder="البريد الإلكتروني (example@gmail.com)">
+                                    <label for="newUserEmail">البريد الإلكتروني</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="tel" id="newUserPhone" class="form-control" placeholder="رقم الهاتف (01xxxxxxxxx)" maxlength="11">
+                                    <label for="newUserPhone">رقم الهاتف</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="password" id="newUserPass" class="form-control" placeholder="كلمة المرور (6 أحرف على الأقل)">
+                                    <label for="newUserPass">كلمة المرور</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="password" id="newUserPassConfirm" class="form-control" placeholder="تأكيد كلمة المرور">
+                                    <label for="newUserPassConfirm">تأكيد كلمة المرور</label>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted">استخدم كلمة مرور قوية تحتوي على حرف كبير ورقم لزيادة الأمان.</small>
+                                </div>
+                                <button type="button" class="btn btn-primary w-100" onclick="validateAndLogin()">إنشاء حساب جديد</button>
+                                <p class="text-center text-muted small mt-3 mb-0">بالضغط على إنشاء حساب، فإنك توافق على الشروط وسياسة الخصوصية.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -239,8 +277,8 @@
                                     </div>
 
 
-                                    <button type="button" class="whatsapp-btn" onclick="sendOrderToWhatsapp()">
-                                        <i class="fa-brands fa-whatsapp me-2"></i> إرسال الطلب الآن
+                                    <button type="button" class="whatsapp-btn" onclick="submitOrder()">
+                                        <i class="fa-solid fa-bell me-2"></i> إرسال الطلب للوحة الإدارة
                                     </button>
                                 </form>
                             </div>
