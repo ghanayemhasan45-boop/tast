@@ -1,7 +1,7 @@
 :root {
-    --primary: #141f44;       /* Deep Purple */
+    --primary: #2D1B69;       /* Deep Purple */
     --primary-light: #432c8a;
-    --accent: #0da10d;        /* Emerald Green */
+    --accent: #00D084;        /* Emerald Green */
     --accent-hover: #00b371;
     --bg-body: #F8F9FA;
     --text-dark: #1A1A1A;
@@ -168,6 +168,7 @@ body {
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
@@ -309,4 +310,16 @@ body {
     opacity: 1;
     color: var(--accent);
     transform: translateY(-3px);
+}
+
+.daily-summary-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    margin-bottom: 15px;
+}
+
+.daily-summary-card h5 {
+    margin-bottom: 10px;
+    color: var(--primary);
 }

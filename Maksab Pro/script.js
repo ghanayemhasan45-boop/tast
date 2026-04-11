@@ -7,7 +7,7 @@ const products = [
         price: 350,
         profit: 100,
         sales: 520,
-        image: "https://m.media-amazon.com/images/I/61VXJ7zCS+L._AC_SY300_SX300_QL70_ML2_.jpg",
+        image: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?auto=format&fit=crop&w=500&q=80",
         desc: "أشهر ساعة الترا في السوق، شاشة 1.99 بوصة، تدعم المكالمات"
     },
     {
@@ -17,7 +17,7 @@ const products = [
         price: 450,
         profit: 120,
         sales: 300,
-        image: "https://m.media-amazon.com/images/I/61VXJ7zCS+L._AC_SY300_SX300_QL70_ML2_.jpg",
+        image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=500&q=80",
         desc: "تصميم أنيق مشابه لساعة ابل، زر جانبي شغال، وتدعم تغيير الخلفيات."
     },
     {
@@ -889,7 +889,6 @@ function simulateLogin() {
     // هنسيب دي بسيطة للتجربة السريعة لو حبيت
     validateAndLogin(); 
 }
-function simulateGoogleLogin() { simulateLogin(); }
 function saveProfile() {
     if(!isLoggedIn) return;
     const newName = document.getElementById('profileName').value;
@@ -905,26 +904,6 @@ function logout() { location.reload(); }
 // --- Init ---
 renderProducts();
 
-// دالة لحساب الربح لما تغير السعر الإجمالي بإيدك
-function calculateProfitManual() {
-    let finalTotal = parseFloat(document.getElementById('finalTotalInput').value) || 0;
-    
-    // نجيب التكلفة والشحن من الصفحة
-    let wholesale = parseFloat(document.getElementById('summaryWholesale').innerText) || 0;
-    let shipping = parseFloat(document.getElementById('summaryShipping').innerText) || 0;
-
-    // معادلة الربح الجديدة
-    let newProfit = finalTotal - (wholesale + shipping);
-    
-    // تحديث رقم الربح في الشاشة
-    let profitEl = document.getElementById('summaryProfit');
-    profitEl.innerText = newProfit + ' ج.م';
-    
-    // تلوين الربح (أحمر لو خسارة، أخضر لو مكسب)
-    if(newProfit < 0) profitEl.className = "text-danger fw-bold";
-    else profitEl.className = "text-success fw-bold";
-}
-// دالة لحساب الربح لما تغير السعر الإجمالي بإيدك
 function calculateProfitManual() {
     let finalTotal = parseFloat(document.getElementById('finalTotalInput').value) || 0;
     

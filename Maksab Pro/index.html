@@ -9,7 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    
 </head>
 <body>
 
@@ -27,6 +28,10 @@
             <div class="nav-icon-btn position-relative" title="سلة الطلبات" data-bs-toggle="modal" data-bs-target="#cartModal">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span class="badge-counter" id="cartCount">0</span>
+            </div>
+
+            <div class="nav-icon-btn position-relative" title="تقرير المبيعات" onclick="openSalesReport()">
+                <i class="fa-solid fa-chart-bar"></i>
             </div>
         </div>
 
@@ -75,6 +80,8 @@
         </div>
     </section>
 
+    <div class="container mb-4" id="dailySalesSummary"></div>
+
     <div class="container pb-5">
         
         <div class="filter-bar row g-3 align-items-center">
@@ -122,16 +129,18 @@
                     </ul>
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="loginTab">
-                            <input type="email" class="form-control mb-3" placeholder="البريد الإلكتروني">
-                            <input type="password" class="form-control mb-3" placeholder="كلمة المرور">
-                            <button class="btn btn-primary w-100 mb-3" onclick="simulateLogin()">دخول</button>
+                            <input type="email" class="form-control mb-3" id="loginEmail" placeholder="البريد الإلكتروني">
+                            <input type="password" class="form-control mb-3" id="loginPassword" placeholder="كلمة المرور">
+                            <button class="btn btn-primary w-100" onclick="handleSimpleLogin()">دخول</button>
                             
-                            <div class="text-center mb-3">
-                                <span class="text-muted">أو</span>
+                            <div class="d-flex align-items-center my-3">
+                                <hr class="flex-grow-1">
+                                <span class="mx-2 text-muted small">أو الدخول السريع</span>
+                                <hr class="flex-grow-1">
                             </div>
                             <button id="google-login-btn" class="btn btn-outline-dark w-100 d-flex align-items-center justify-content-center gap-2 py-2">
                                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
-                                تسجيل الدخول بواسطة جوجل
+                                المتابعة باستخدام جوجل
                             </button>
                         </div>
                        <div class="tab-pane fade" id="signupTab">
@@ -242,7 +251,6 @@
         </div>
     </div>
 
-
     <div class="modal fade" id="walletModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 overflow-hidden">
@@ -290,7 +298,7 @@
     </div>
 </div>
 
-    <footer class="main-footer">
+</div> </div> </div> </div> <footer class="main-footer">
         <div class="container">
             <div class="footer-content">
                 <p class="mb-0">
@@ -298,16 +306,30 @@
                     <span class="brand-name">مكسب <span>برو</span></span>
                 </p>
                 <div class="social-links mt-2">
-                    <a href="#"><i class="fa-brands fa-facebook"></i></a>
-                    <a href="#"><i class="fa-brands fa-whatsapp"></i></a>
-                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://www.facebook.com/profile.php?fb_profile_edit_entry_point=%7B%22click_point%22%3A%22edit_profile_button%22%2C%22feature%22%3A%22profile_header%22%7D&id=61584432689909&sk=about" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-facebook"></i>
+                    </a>
+                    <a href="https://wa.me/01553110124" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </a>
+                    <a href="https://www.facebook.com/messages/t/61584432689909" target="_blank" rel="noopener">
+                        <i class="fa-solid fa-headset"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="login.js"></script> <script src="script.js"></script>
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/modules/utils.js"></script>
+    <script src="assets/js/modules/ui.js"></script>
+    <script src="assets/js/modules/cart.js"></script>
+    <script type="module" src="assets/js/modules/auth.js"></script>
+    <script src="assets/js/modules/wallet.js"></script>
+    <script src="assets/js/modules/sales.js"></script>
+    <script src="assets/js/reports.js"></script>
+    <script src="assets/js/main.js"></script>
 
 </body>
 </html>
