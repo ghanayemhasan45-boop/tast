@@ -20,7 +20,7 @@
         <div class="d-flex align-items-center gap-4">
             <a class="navbar-brand mb-0" href="#">مكسب <span>برو</span></a>
             
-            <div class="nav-icon-btn position-relative" title="المحفظة" data-bs-toggle="modal" data-bs-target="#walletModal" onclick="updateWalletUI()">
+            <div id="walletButton" class="nav-icon-btn position-relative" title="المحفظة" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#walletModal">
                 <i class="fa-solid fa-wallet"></i>
                 <span id="walletNotif" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
             </div>
@@ -37,6 +37,10 @@
 
         <div class="d-flex align-items-center gap-2">
             <a id="adminPanelLink" class="btn btn-outline-light btn-sm d-none" href="admin.html">لوحة الإدارة</a>
+            <button id="userSalesSummaryBtn" class="btn btn-outline-light btn-sm d-none" onclick="openCustomerSalesSummary()">ملخص مبيعاتي</button>
+            <button id="themeToggleBtn" class="btn btn-outline-light btn-sm" onclick="toggleDarkMode()" title="تبديل الوضع">
+                <i class="fa-solid fa-moon"></i>
+            </button>
             <div id="authSection">
                 <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">تسجيل الدخول</button>
             </div>
@@ -82,8 +86,6 @@
             <p class="mb-4">أكثر من 500 منتج بسعر الجملة.. شحن سريع.. أرباح فورية</p>
         </div>
     </section>
-
-    <div class="container mb-4" id="dailySalesSummary"></div>
 
     <div class="container pb-5">
         
@@ -298,12 +300,31 @@
             </div>
             <div class="modal-body p-4">
                 
-                <div class="wallet-card mb-4 text-center text-white p-4 rounded-4" style="background: linear-gradient(135deg, #2D1B69 0%, #00D084 100%); box-shadow: 0 10px 20px rgba(45, 27, 105, 0.3);">
-                    <p class="mb-1 opacity-75">رصيدك الحالي القابل للسحب</p>
-                    <h1 class="fw-bold mb-3 display-4"><span id="walletBalance">0</span> <small class="fs-6">ج.م</small></h1>
-                    <button class="btn btn-light text-primary fw-bold rounded-pill px-4" onclick="toggleWithdrawForm()">
-                        <i class="fa-solid fa-money-bill-transfer"></i> سحب الرصيد
-                    </button>
+                <div class="wallet-container">
+                    <div class="wallet-card">
+                        <div class="wallet-header d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <span class="wallet-label">رصيدك الحالي</span>
+                            </div>
+                            <div class="wallet-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                        </div>
+                        <div class="wallet-balance mb-3">
+                            <span id="current-balance">0.00</span> <small>ج.م</small>
+                        </div>
+                        <div class="wallet-footer d-flex gap-3 flex-wrap">
+                            <div class="stat p-3 rounded-4 bg-white bg-opacity-15 flex-fill">
+                                <span class="stat-label d-block mb-1">أرباح معلقة</span>
+                                <span id="pending-profit" class="stat-value">0.00 ج.م</span>
+                            </div>
+                            <div class="stat p-3 rounded-4 bg-white bg-opacity-15 flex-fill">
+                                <span class="stat-label d-block mb-1">إجمالي الأرباح</span>
+                                <span id="total-withdrawn" class="stat-value">0.00 ج.م</span>
+                            </div>
+                        </div>
+                        <button id="withdraw-btn" class="withdraw-btn mt-4" onclick="toggleWithdrawForm()">طلب سحب أرباح</button>
+                    </div>
                 </div>
 
                 <div id="withdrawForm" class="d-none bg-light p-3 rounded mb-3 border">
@@ -331,6 +352,24 @@
                     <p class="text-muted text-center small py-3">لا توجد معاملات بعد</p>
                 </div>
 
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<div class="modal fade" id="salesSummaryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-white border-0">
+                <h5 class="modal-title fw-bold">ملخص المبيعات الخاص بي</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="salesSummaryContent">
+                <div class="text-center text-muted">
+                    <p>سجل دخولك أولاً ثم اضغط على "ملخص مبيعاتي" لعرض الطلبات الخاصة بك.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -366,8 +405,8 @@
 <script src="assets/js/modules/utils.js"></script>
 <script src="assets/js/modules/ui.js"></script>
 <script src="assets/js/modules/cart.js"></script>
-<script src="assets/js/modules/wallet.js"></script>
 <script src="assets/js/modules/sales.js"></script>
+<script src="assets/js/modules/wallet.js"></script>
 
 <script type="module" src="auth.js"></script>
 

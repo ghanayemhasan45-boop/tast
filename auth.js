@@ -1,14 +1,22 @@
-// assets/js/modules/auth.js
-
-/// Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
-import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDDOfl6AlQQHTH_UZD-GQv6mninKHZKtgY",
   authDomain: "makasab-pro.firebaseapp.com",
@@ -16,132 +24,169 @@ const firebaseConfig = {
   storageBucket: "makasab-pro.firebasestorage.app",
   messagingSenderId: "1056068624133",
   appId: "1:1056068624133:web:ad9e417d207b8fd2fda16c",
-  measurementId: "G-ZE4YJ931FS"
+  measurementId: "G-ZE4YJ931FS",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
-const ADMIN_EMAILS = ['admin@makasabpro.com', 'ghanayemhasan45@gmail.com'];
+const ADMIN_EMAILS = ["admin@makasabpro.com", "ghanayemhasan45@gmail.com"];
+const CURRENT_USER_KEY = "currentUser";
 
-// 4. ربط زر جوجل
-const googleLoginBtn = document.getElementById('google-login-btn');
+window.auth = auth;
+window.db = db;
+window.ADMIN_EMAILS = ADMIN_EMAILS;
+window.firestoreHelpers = {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+};
 
+const googleLoginBtn = document.getElementById("google-login-btn");
 if (googleLoginBtn) {
-    googleLoginBtn.addEventListener('click', () => {
-        // إضافة تأثير التحميل للزر
-        const originalText = googleLoginBtn.innerHTML;
-        googleLoginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الاتصال...';
+  googleLoginBtn.addEventListener("click", async () => {
+    const originalText = googleLoginBtn.innerHTML;
+    googleLoginBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-2"></span> ???? ???????...';
+    googleLoginBtn.disabled = true;
 
-        signInWithPopup(auth, provider)
-            .then((result) => {
-                const user = result.user;
-                console.log("تم تسجيل الدخول بنجاح:", user.displayName);
-                
-                // استدعاء دالة تحديث الواجهة بعد الدخول
-                handleLoginSuccess(user.displayName, user.email);
-                
-                // إرجاع شكل الزر
-                googleLoginBtn.innerHTML = originalText;
-            })
-            .catch((error) => {
-                console.error("خطأ في تسجيل الدخول:", error);
-                googleLoginBtn.innerHTML = originalText;
-                
-                if (error.code === 'auth/unauthorized-domain') {
-                    alert("عذراً! النطاق (Domain) الحالي غير مصرح به.\nيرجى إضافة (localhost أو 127.0.0.1) في إعدادات Firebase -> Authentication -> Settings -> Authorized domains");
-                } else {
-                    alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
-                }
-            });
-    });
+    try {
+      const result = await signInWithPopup(auth, provider);
+      await handleLoginSuccess(result.user);
+    } catch (error) {
+      console.error("??? ?? ????? ?????? ?????:", error);
+      if (error.code === "auth/unauthorized-domain") {
+        alert("?????? ??? ?????? ??? ????? ?? ?? ??????? Firebase.");
+      } else {
+        alert("??? ??? ????? ????? ?????? ?????: " + error.message);
+      }
+    } finally {
+      googleLoginBtn.innerHTML = originalText;
+      googleLoginBtn.disabled = false;
+    }
+  });
 }
 
-// 5. دالة تحديث الواجهة بعد نجاح الدخول (مربوطة بـ window لتعمل بشكل صحيح مع الـ module)
-window.handleLoginSuccess = function(userName, userEmail) {
-    // إغلاق نافذة التسجيل
-    const loginModalEl = document.getElementById('loginModal');
-    if(loginModalEl) {
-        const modalInstance = bootstrap.Modal.getInstance(loginModalEl) || new bootstrap.Modal(loginModalEl);
-        modalInstance.hide();
-    }
+async function saveUserRecord(user) {
+  if (!user?.email) return;
+  try {
+    const userRef = doc(db, "Users", user.email);
+    await setDoc(
+      userRef,
+      {
+        email: user.email,
+        name: user.displayName || "???? ????",
+        photoURL: user.photoURL || "",
+        isAdmin: ADMIN_EMAILS.includes(user.email),
+        lastLogin: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    console.error("??? ?? ??? ?????? ???????? ?? Firestore:", error);
+  }
+}
 
-    // تحديث زر الـ Header ليظهر الاسم بدلاً من "تسجيل الدخول"
-    const authSection = document.getElementById('authSection');
-    if(authSection) {
-        authSection.innerHTML = `
-            <button class="btn btn-primary btn-sm px-3 rounded-pill fw-bold" data-bs-toggle="offcanvas" data-bs-target="#profileSidebar">
-                <i class="fa-solid fa-user me-1"></i> ${userName.split(' ')[0]}
-            </button>
-        `;
-    }
+window.handleLoginSuccess = async function (user) {
+  if (!user) return;
 
-    // تحديث بيانات الملف الشخصي (الـ Sidebar)
-    const profileName = document.getElementById('profileName');
-    const profileEmail = document.getElementById('profileEmail');
-    
-    if(profileName) profileName.value = userName;
-    if(profileEmail) profileEmail.value = userEmail;
+  currentUser = {
+    name: user.displayName || "???? ????",
+    email: user.email,
+    photoURL: user.photoURL || "",
+    isAdmin: ADMIN_EMAILS.includes(user.email),
+  };
+  window.currentUser = currentUser;
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
 
-    const currentUser = {
-        name: userName,
-        email: userEmail,
-        isAdmin: ADMIN_EMAILS.includes(userEmail)
-    };
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    if (currentUser.isAdmin) {
-        document.getElementById('adminPanelLink')?.classList.remove('d-none');
-    } else {
-        document.getElementById('adminPanelLink')?.classList.add('d-none');
-    }
+  await saveUserRecord(user);
+
+  const authSection = document.getElementById("authSection");
+  if (authSection) {
+    authSection.innerHTML = `
+      <button class="btn btn-primary btn-sm px-3 rounded-pill fw-bold" data-bs-toggle="offcanvas" data-bs-target="#profileSidebar">
+        <i class="fa-solid fa-user me-1"></i> ${currentUser.name.split(" ")[0]}
+      </button>
+    `;
+  }
+
+  const profileName = document.getElementById("profileName");
+  const profileEmail = document.getElementById("profileEmail");
+  if (profileName) profileName.value = currentUser.name;
+  if (profileEmail) profileEmail.value = currentUser.email;
+
+  const adminLink = document.getElementById("adminPanelLink");
+  if (adminLink) {
+    adminLink.classList.toggle("d-none", !currentUser.isAdmin);
+  }
+
+  const marketerPanel = document.getElementById("marketerDashboard");
+  if (marketerPanel) {
+    marketerPanel.classList.toggle(
+      "d-none",
+      currentUser.isAdmin || !currentUser.email,
+    );
+  }
+
+  document.getElementById("userSalesSummaryBtn")?.classList.remove("d-none");
+  if (typeof updateWalletUI === "function") updateWalletUI();
+  if (typeof renderMarketerDashboard === "function") renderMarketerDashboard();
+  if (typeof checkCustomerOrderNotifications === "function")
+    checkCustomerOrderNotifications();
 };
 
-window.forgotPassword = function() {
-    const emailInput = document.getElementById('loginEmail');
-    const email = emailInput?.value.trim();
+window.forgotPassword = function () {
+  const emailInput = document.getElementById("loginEmail");
+  const email = emailInput?.value.trim();
 
-    if (!email) {
-        alert('يرجى إدخال البريد الإلكتروني أولاً حتى نرسل رابط استعادة كلمة المرور.');
-        if (emailInput) emailInput.focus();
-        return;
-    }
+  if (!email) {
+    if (emailInput) emailInput.focus();
+    alert("???? ????? ?????? ?????????? ??? ???? ?? ???? ????? ???????.");
+    return;
+  }
 
-    sendPasswordResetEmail(auth, email)
-        .then(() => {
-            alert('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. تحقق من صندوق الوارد أو البريد غير المرغوب فيه.');
-        })
-        .catch((error) => {
-            console.error('خطأ في استعادة كلمة المرور:', error);
-            if (error.code === 'auth/user-not-found') {
-                alert('لم يتم العثور على حساب بهذا البريد الإلكتروني. تأكد من البريد وأعد المحاولة.');
-            } else {
-                alert('حدث خطأ أثناء إرسال الرابط: ' + error.message);
-            }
-        });
-};
-
-// 6. دالة تسجيل الخروج (مربوطة بزر الخروج في الـ Sidebar)
-window.logout = function() {
-    signOut(auth).then(() => {
-        console.log("تم تسجيل الخروج");
-        localStorage.removeItem('currentUser');
-        document.getElementById('adminPanelLink')?.classList.add('d-none');
-        // إعادة الواجهة لشكلها الأصلي
-        const authSection = document.getElementById('authSection');
-        if(authSection) {
-            authSection.innerHTML = `
-                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">تسجيل الدخول</button>
-            `;
-        }
-        // إغلاق الـ Sidebar
-        const sidebarEl = document.getElementById('profileSidebar');
-        if(sidebarEl) {
-            const sidebarInstance = bootstrap.Offcanvas.getInstance(sidebarEl);
-            if(sidebarInstance) sidebarInstance.hide();
-        }
-    }).catch((error) => {
-        console.error("خطأ في تسجيل الخروج:", error);
+  sendPasswordResetEmail(auth, email)
+    .then(() => {
+      alert("?? ????? ???? ????? ??????? ??? ????? ??????????.");
+    })
+    .catch((error) => {
+      console.error("??? ?? ??????? ???? ??????:", error);
+      alert("??? ???: " + error.message);
     });
 };
+
+window.logout = function () {
+  signOut(auth)
+    .then(() => {
+      localStorage.removeItem(CURRENT_USER_KEY);
+      currentUser = null;
+      window.currentUser = null;
+      document.getElementById("adminPanelLink")?.classList.add("d-none");
+      document.getElementById("userSalesSummaryBtn")?.classList.add("d-none");
+
+      const authSection = document.getElementById("authSection");
+      if (authSection) {
+        authSection.innerHTML = `<button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">????? ??????</button>`;
+      }
+
+      const marketerPanel = document.getElementById("marketerDashboard");
+      if (marketerPanel) marketerPanel.classList.add("d-none");
+
+      const sidebarEl = document.getElementById("profileSidebar");
+      const sidebarInstance = bootstrap.Offcanvas.getInstance(sidebarEl);
+      if (sidebarInstance) sidebarInstance.hide();
+    })
+    .catch((error) => {
+      console.error("??? ?? ????? ??????:", error);
+    });
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    await handleLoginSuccess(user);
+  }
+});

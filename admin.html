@@ -1,61 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>لوحة الإدارة - مكسب برو</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <nav class="navbar navbar-expand-lg fixed-top">
-        <div class="container d-flex justify-content-between">
-            <a class="navbar-brand mb-0 text-white" href="index.html">مكسب <span>برو</span></a>
-            <div class="d-flex align-items-center gap-2">
-                <a class="btn btn-outline-light btn-sm" href="index.html"><i class="fa-solid fa-arrow-right-from-bracket"></i> العودة للموقع</a>
-            </div>
+      <div class="container d-flex justify-content-between">
+        <a class="navbar-brand mb-0 text-white" href="index.html"
+          >مكسب <span>برو</span></a
+        >
+        <div class="d-flex align-items-center gap-2">
+          <a class="btn btn-outline-light btn-sm" href="index.html"
+            ><i class="fa-solid fa-arrow-right-from-bracket"></i> العودة
+            للموقع</a
+          >
         </div>
+      </div>
     </nav>
 
     <main class="container py-5 mt-5">
-        <div class="admin-header text-center py-4 mb-4 rounded-4 shadow-sm bg-white">
-            <h2 class="fw-bold">لوحة إدارة الطلبات</h2>
-            <p class="text-muted mb-0">هنا تصل الطلبات مباشرة وتستطيع تأكيدها لتصل إشعاراً للعميل.</p>
-        </div>
+      <div
+        class="admin-header text-center py-4 mb-4 rounded-4 shadow-sm bg-white"
+      >
+        <h2 class="fw-bold">لوحة إدارة الطلبات</h2>
+        <p class="text-muted mb-0">
+          هنا تصل الطلبات مباشرة وتستطيع تأكيدها لتصل إشعاراً للعميل.
+        </p>
+      </div>
 
-        <div id="adminOverview" class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="admin-stat-card p-4 rounded-4 shadow-sm bg-white">
-                    <h5>الطلبات الجديدة</h5>
-                    <p class="display-6 fw-bold" id="pendingOrdersCount">0</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="admin-stat-card p-4 rounded-4 shadow-sm bg-white">
-                    <h5>الطلبات المؤكدة</h5>
-                    <p class="display-6 fw-bold" id="confirmedOrdersCount">0</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="admin-stat-card p-4 rounded-4 shadow-sm bg-white">
-                    <h5>إجمالي الطلبات</h5>
-                    <p class="display-6 fw-bold" id="totalOrdersCount">0</p>
-                </div>
-            </div>
+      <div id="adminOverview" class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="admin-stat-card p-4 rounded-4 shadow-sm bg-white">
+            <h5>الطلبات الجديدة</h5>
+            <p class="display-6 fw-bold" id="pendingOrdersCount">0</p>
+          </div>
         </div>
-
-        <div class="mb-4">
-            <div class="alert alert-info d-flex align-items-center gap-2" role="alert">
-                <i class="fa-solid fa-bell"></i>
-                <div>اضغط "تأكيد" حتى ينتقل الطلب إلى الحالة المؤكدة ويصلك إشعار للعميل.</div>
-            </div>
+        <div class="col-md-4">
+          <div class="admin-stat-card p-4 rounded-4 shadow-sm bg-white">
+            <h5>الطلبات المؤكدة</h5>
+            <p class="display-6 fw-bold" id="confirmedOrdersCount">0</p>
+          </div>
         </div>
+        <div class="col-md-4">
+          <div class="admin-stat-card p-4 rounded-4 shadow-sm bg-white">
+            <h5>إجمالي الطلبات</h5>
+            <p class="display-6 fw-bold" id="totalOrdersCount">0</p>
+          </div>
+        </div>
+      </div>
 
-        <div id="ordersContainer" class="row gy-4"></div>
+      <div class="mb-4">
+        <div
+          class="alert alert-info d-flex align-items-center gap-2"
+          role="alert"
+        >
+          <i class="fa-solid fa-bell"></i>
+          <div>
+            اضغط "تأكيد" حتى ينتقل الطلب إلى الحالة المؤكدة ويصلك إشعار للعميل.
+          </div>
+        </div>
+      </div>
+
+      <div id="ordersContainer" class="row gy-4"></div>
     </main>
 
     <script src="admin.js"></script>
-</body>
+  </body>
 </html>
