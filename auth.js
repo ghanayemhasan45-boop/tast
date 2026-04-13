@@ -51,18 +51,18 @@ if (googleLoginBtn) {
   googleLoginBtn.addEventListener("click", async () => {
     const originalText = googleLoginBtn.innerHTML;
     googleLoginBtn.innerHTML =
-      '<span class="spinner-border spinner-border-sm me-2"></span> ???? ???????...';
+      '<span class="spinner-border spinner-border-sm me-2"></span> جاري تسجيل الدخول...';
     googleLoginBtn.disabled = true;
 
     try {
       const result = await signInWithPopup(auth, provider);
       await handleLoginSuccess(result.user);
     } catch (error) {
-      console.error("??? ?? ????? ?????? ?????:", error);
+      console.error("خطأ في تسجيل الدخول عبر جوجل:", error);
       if (error.code === "auth/unauthorized-domain") {
-        alert("?????? ??? ?????? ??? ????? ?? ?? ??????? Firebase.");
+        alert("النطاق غير مصرح له في إعدادات Firebase.");
       } else {
-        alert("??? ??? ????? ????? ?????? ?????: " + error.message);
+        alert("حدث خطأ أثناء تسجيل الدخول عبر جوجل: " + error.message);
       }
     } finally {
       googleLoginBtn.innerHTML = originalText;
@@ -79,7 +79,7 @@ async function saveUserRecord(user) {
       userRef,
       {
         email: user.email,
-        name: user.displayName || "???? ????",
+        name: user.displayName || "مستخدم غير معروف",
         photoURL: user.photoURL || "",
         isAdmin: ADMIN_EMAILS.includes(user.email),
         lastLogin: serverTimestamp(),
@@ -87,7 +87,7 @@ async function saveUserRecord(user) {
       { merge: true },
     );
   } catch (error) {
-    console.error("??? ?? ??? ?????? ???????? ?? Firestore:", error);
+    console.error("خطأ في حفظ بيانات المستخدم إلى Firestore:", error);
   }
 }
 
@@ -95,7 +95,7 @@ window.handleLoginSuccess = async function (user) {
   if (!user) return;
 
   currentUser = {
-    name: user.displayName || "???? ????",
+    name: user.displayName || "مستخدم غير معروف",
     email: user.email,
     photoURL: user.photoURL || "",
     isAdmin: ADMIN_EMAILS.includes(user.email),
@@ -132,8 +132,6 @@ window.handleLoginSuccess = async function (user) {
     );
   }
 
-  document.getElementById("userSalesSummaryBtn")?.classList.remove("d-none");
-  if (typeof updateWalletUI === "function") updateWalletUI();
   if (typeof renderMarketerDashboard === "function") renderMarketerDashboard();
   if (typeof checkCustomerOrderNotifications === "function")
     checkCustomerOrderNotifications();
@@ -145,17 +143,17 @@ window.forgotPassword = function () {
 
   if (!email) {
     if (emailInput) emailInput.focus();
-    alert("???? ????? ?????? ?????????? ??? ???? ?? ???? ????? ???????.");
+    alert("يرجى إدخال البريد الإلكتروني لاستعادة كلمة المرور.");
     return;
   }
 
   sendPasswordResetEmail(auth, email)
     .then(() => {
-      alert("?? ????? ???? ????? ??????? ??? ????? ??????????.");
+      alert("تم إرسال رسالة إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.");
     })
     .catch((error) => {
-      console.error("??? ?? ??????? ???? ??????:", error);
-      alert("??? ???: " + error.message);
+      console.error("خطأ أثناء إرسال رسالة إعادة التعيين:", error);
+      alert("حدث خطأ: " + error.message);
     });
 };
 
@@ -166,11 +164,10 @@ window.logout = function () {
       currentUser = null;
       window.currentUser = null;
       document.getElementById("adminPanelLink")?.classList.add("d-none");
-      document.getElementById("userSalesSummaryBtn")?.classList.add("d-none");
 
       const authSection = document.getElementById("authSection");
       if (authSection) {
-        authSection.innerHTML = `<button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">????? ??????</button>`;
+        authSection.innerHTML = `<a class="btn btn-outline-light btn-sm" href="login.html">تسجيل الدخول</a>`;
       }
 
       const marketerPanel = document.getElementById("marketerDashboard");
@@ -181,7 +178,7 @@ window.logout = function () {
       if (sidebarInstance) sidebarInstance.hide();
     })
     .catch((error) => {
-      console.error("??? ?? ????? ??????:", error);
+      console.error("خطأ أثناء تسجيل الخروج:", error);
     });
 };
 

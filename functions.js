@@ -33,29 +33,22 @@ function updateAdminLinkVisibility() {
   link.classList.toggle("d-none", !isAdminUser(currentUser));
 }
 
+function updateSalesReportIconVisibility() {
+  const icon = document.getElementById("salesReportIcon");
+  if (!icon) return;
+  if (currentUser && !isAdminUser(currentUser)) {
+    icon.classList.remove("d-none");
+  } else {
+    icon.classList.add("d-none");
+  }
+}
+
 function getFirestoreHelpers() {
   return window.firestoreHelpers || {};
 }
 
 function getFirestoreDb() {
   return window.db;
-}
-
-async function fetchUserWallet(email) {
-  const db = getFirestoreDb();
-  const { doc, getDoc } = getFirestoreHelpers();
-  if (!db || !email || !doc || !getDoc) return { balance: 0, history: [] };
-  const walletRef = doc(db, "Wallets", email);
-  const walletSnap = await getDoc(walletRef);
-  return walletSnap.exists() ? walletSnap.data() : { balance: 0, history: [] };
-}
-
-async function saveUserWallet(email, walletData) {
-  const db = getFirestoreDb();
-  const { doc, setDoc } = getFirestoreHelpers();
-  if (!db || !email || !setDoc || !doc) return;
-  const walletRef = doc(db, "Wallets", email);
-  await setDoc(walletRef, walletData, { merge: true });
 }
 
 async function fetchPersonalOrders() {
@@ -375,21 +368,21 @@ async function submitOrder() {
   };
 
   const orderId = await saveOrderToFirestore(order);
-  if (!orderId) {
-    alert("حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.");
-    return;
-  }
+  order.id = orderId || `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  addOrder(order);
 
   cart = [];
   updateCartUI();
-  if (currentProfit > 0) {
-    await addProfitToWallet(currentProfit, orderId);
-    await updateWalletUI();
-  }
 
-  alert(
-    `تم إرسال الطلب إلى مركز القيادة بنجاح. رقم الطلب داخل النظام: ${orderId}`,
-  );
+  if (!orderId) {
+    alert(
+      `تم حفظ الطلب محلياً بنجاح. رقم الطلب: ${order.id}. سيتم عرضه في لوحة الإدارة.`,
+    );
+  } else {
+    alert(
+      `تم إرسال الطلب إلى مركز القيادة بنجاح. رقم الطلب داخل النظام: ${order.id}`,
+    );
+  }
 }
 
 function markOrderConfirmed(orderId) {
@@ -538,10 +531,6 @@ function renderDailySalesSummary() {
 
 // --- 5. Auth & Profile ---
 function updateUIAfterLogin() {
-  const modalEl = document.getElementById("loginModal");
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
-
   document.getElementById("authSection").innerHTML = `
         <div class="user-profile-trigger" data-bs-toggle="offcanvas" data-bs-target="#profileSidebar">
             <i class="fa-solid fa-user-circle"></i>
@@ -559,8 +548,8 @@ function updateUIAfterLogin() {
 
   saveStoredUser(currentUser);
   updateAdminLinkVisibility();
-  document.getElementById("userSalesSummaryBtn")?.classList.remove("d-none");
-  if (typeof updateWalletUI === "function") updateWalletUI();
+  updateSalesReportIconVisibility();
+
   if (typeof renderMarketerDashboard === "function") renderMarketerDashboard();
   alert(`تم تسجيل الدخول بنجاح! \nأهلاً بك يا: ${currentUser.name}`);
   checkCustomerOrderNotifications();
@@ -581,96 +570,6 @@ async function getCurrentUserOrders() {
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-async function renderCustomerSalesSummary() {
-  const container = document.getElementById("salesSummaryContent");
-  if (!container) return;
-
-  if (!currentUser?.email) {
-    container.innerHTML = `
-            <div class="text-center text-muted py-5">
-                <p class="mb-2">سجل دخولك أولاً لعرض ملخص المبيعات الخاص بك.</p>
-            </div>
-        `;
-    return;
-  }
-
-  const orders = await getCurrentUserOrders();
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce(
-    (sum, order) => sum + (parseFloat(order.total) || 0),
-    0,
-  );
-  const totalProfit = orders.reduce(
-    (sum, order) => sum + (parseFloat(order.profit) || 0),
-    0,
-  );
-
-  container.innerHTML = `
-        <div class="row align-items-center mb-4">
-            <div class="col-md-4 mb-3 mb-md-0">
-                <div class="p-4 rounded-4 bg-light shadow-sm text-center">
-                    <h6 class="mb-2">عدد الطلبات</h6>
-                    <p class="fs-3 fw-bold mb-0">${totalOrders}</p>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3 mb-md-0">
-                <div class="p-4 rounded-4 bg-light shadow-sm text-center">
-                    <h6 class="mb-2">إجمالي المبيعات</h6>
-                    <p class="fs-3 fw-bold mb-0">${totalRevenue.toFixed(2)} ج.م</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="p-4 rounded-4 bg-light shadow-sm text-center">
-                    <h6 class="mb-2">إجمالي الربح</h6>
-                    <p class="fs-3 fw-bold mb-0 text-success">${totalProfit.toFixed(2)} ج.م</p>
-                </div>
-            </div>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>رقم الطلب</th>
-                        <th>التاريخ</th>
-                        <th>الحالة</th>
-                        <th>القيمة</th>
-                        <th>الربح</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${
-                      orders.length === 0
-                        ? `
-                        <tr><td colspan="5" class="text-center text-muted py-4">لم تقم بأي طلبات بعد.</td></tr>
-                    `
-                        : orders
-                            .map(
-                              (order) => `
-                        <tr>
-                            <td>${order.id}</td>
-                            <td>${new Date(order.createdAt?.seconds ? order.createdAt.seconds * 1000 : order.createdAt).toLocaleString("ar-EG")}</td>
-                            <td>${order.status === "delivered" ? "تم التسليم" : order.status === "confirmed" ? "تم الاستلام" : "جديد"}</td>
-                            <td>${parseFloat(order.total || 0).toFixed(2)} ج.م</td>
-                            <td>${parseFloat(order.profit || 0).toFixed(2)} ج.م</td>
-                        </tr>
-                    `,
-                            )
-                            .join("")
-                    }
-                </tbody>
-            </table>
-        </div>
-    `;
-}
-
-async function openCustomerSalesSummary() {
-  await renderCustomerSalesSummary();
-  const modalEl = document.getElementById("salesSummaryModal");
-  if (!modalEl) return;
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
-}
-
 async function renderMarketerDashboard() {
   const dashboardSection = document.getElementById("marketerDashboard");
   if (!dashboardSection) return;
@@ -681,14 +580,11 @@ async function renderMarketerDashboard() {
 
   dashboardSection.classList.remove("d-none");
   const orders = await getCurrentUserOrders();
-  const wallet = await getWalletForEmail(currentUser.email);
   const totalProfit = orders.reduce(
     (sum, o) => sum + (parseFloat(o.profit) || 0),
     0,
   );
 
-  document.getElementById("myWalletBalance").innerText =
-    formatCurrency(wallet.balance) + " ج.م";
   document.getElementById("myOrdersCount").innerText = orders.length;
   document.getElementById("myTotalProfit").innerText =
     formatCurrency(totalProfit) + " ج.م";
@@ -729,6 +625,180 @@ async function renderMarketerDashboard() {
     .join("");
 }
 
+async function openCustomerSalesSummary() {
+  if (!currentUser?.email) {
+    alert("سجل دخولك أولاً حتى تتمكن من عرض تقرير المبيعات.");
+    return;
+  }
+
+  const db = getFirestoreDb();
+  const {
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs,
+  } = getFirestoreHelpers();
+
+  if (!db || !collection || !query || !where || !orderBy || !getDocs) {
+    alert(
+      "تعذر الاتصال بمصدر البيانات حالياً. تأكد أن التطبيق يحتوي على إعدادات Firebase صحيحة.",
+    );
+    return;
+  }
+
+  const salesQuery = query(
+    collection(db, "Orders"),
+    where("marketerEmail", "==", currentUser.email),
+    orderBy("createdAt", "desc"),
+  );
+
+  const snapshot = await getDocs(salesQuery);
+  const orders = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  const totalRevenue = orders.reduce(
+    (sum, order) => sum + (parseFloat(order.total) || 0),
+    0,
+  );
+
+  const totalProfit = orders.reduce(
+    (sum, order) => sum + (parseFloat(order.profit) || 0),
+    0,
+  );
+
+  const summaryByCity = orders.reduce((summary, order) => {
+    const city = order.customer?.city || "غير معروف";
+    if (!summary[city]) {
+      summary[city] = { revenue: 0, profit: 0, orders: 0 };
+    }
+    summary[city].revenue += parseFloat(order.total) || 0;
+    summary[city].profit += parseFloat(order.profit) || 0;
+    summary[city].orders += 1;
+    return summary;
+  }, {});
+
+  const summaryByProduct = orders.reduce((summary, order) => {
+    (order.items || []).forEach((item) => {
+      if (!summary[item.id]) {
+        summary[item.id] = {
+          title: item.title || "منتج غير معروف",
+          sold: 0,
+          revenue: 0,
+          profit: 0,
+        };
+      }
+      summary[item.id].sold += item.qty || 0;
+      summary[item.id].revenue += parseFloat(item.selling || 0);
+      summary[item.id].profit += parseFloat(item.profit || 0);
+    });
+    return summary;
+  }, {});
+
+  const summaryByCityHtml = Object.entries(summaryByCity)
+    .map(
+      ([city, stats]) => `
+            <div class="sales-summary-card bg-white">
+                <h6 class="mb-2">${city}</h6>
+                <div class="stat-row">
+                    <span class="stat-label">عدد الطلبات</span>
+                    <span class="stat-value">${stats.orders}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">إجمالي البيع</span>
+                    <span class="stat-value">${stats.revenue.toFixed(2)} ج.م</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">إجمالي الربح</span>
+                    <span class="stat-value">${stats.profit.toFixed(2)} ج.م</span>
+                </div>
+            </div>
+        `,
+    )
+    .join("");
+
+  const summaryByProductHtml = Object.values(summaryByProduct)
+    .map(
+      (item) => `
+            <div class="sales-summary-card bg-white">
+                <h6 class="mb-2">${item.title}</h6>
+                <div class="stat-row">
+                    <span class="stat-label">الكمية المباعة</span>
+                    <span class="stat-value">${item.sold}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">إيرادات البيع</span>
+                    <span class="stat-value">${item.revenue.toFixed(2)} ج.م</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">الربح</span>
+                    <span class="stat-value">${item.profit.toFixed(2)} ج.م</span>
+                </div>
+            </div>
+        `,
+    )
+    .join("");
+
+  const recentOrdersHtml = orders
+    .slice(0, 5)
+    .map((order) => {
+      const createdAt = order.createdAt?.seconds
+        ? new Date(order.createdAt.seconds * 1000)
+        : new Date(order.createdAt || Date.now());
+      const formattedDate = `${createdAt.toLocaleDateString("ar-EG")} ${createdAt.toLocaleTimeString("ar-EG")}`;
+      return `
+            <div class="sales-summary-card bg-white">
+                <h6 class="mb-2">طلب #${order.id}</h6>
+                <div class="stat-row">
+                    <span class="stat-label">تاريخ الطلب</span>
+                    <span class="stat-value">${formattedDate}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">البيع الكلي</span>
+                    <span class="stat-value">${parseFloat(order.total || 0).toFixed(2)} ج.م</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">الربح</span>
+                    <span class="stat-value">${parseFloat(order.profit || 0).toFixed(2)} ج.م</span>
+                </div>
+            </div>
+        `;
+    })
+    .join("");
+
+  const modalContent = `
+        <div class="d-flex flex-column gap-3">
+            <div class="row gy-3">
+                <div class="col-12 col-lg-4">
+                    <div class="sales-summary-card bg-white p-3 rounded border">
+                        <h5>مؤشرات المبيعات</h5>
+                        <p class="mb-2">إجمالي البيع: <strong>${formatCurrency(totalRevenue)} ج.م</strong></p>
+                        <p class="mb-0">إجمالي الربح: <strong>${formatCurrency(totalProfit)} ج.م</strong></p>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="sales-summary-card bg-white p-3 rounded border">
+                        <h5>أبرز المدن</h5>
+                        ${summaryByCityHtml || '<p class="small text-muted">لا توجد بيانات عن المدن.</p>'}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="sales-summary-card bg-white p-3 rounded border">
+                        <h5>المنتجات الأكثر مبيعاً</h5>
+                        ${summaryByProductHtml || '<p class="small text-muted">لا توجد بيانات عن المنتجات.</p>'}
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h5>آخر الطلبات</h5>
+                ${recentOrdersHtml || '<p class="small text-muted">لا توجد طلبات بعد.</p>'}
+            </div>
+        </div>
+    `;
+
+  document.getElementById("salesSummaryContent").innerHTML = modalContent;
+  new bootstrap.Modal(document.getElementById("salesSummaryModal")).show();
+}
+
 function handleSimpleLogin() {
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
@@ -749,8 +819,15 @@ function handleSimpleLogin() {
     phone: "",
     isAdmin: ADMIN_EMAILS.includes(email),
   };
+  saveStoredUser(currentUser);
+  window.currentUser = currentUser;
 
-  updateUIAfterLogin();
+  alert("تم تسجيل الدخول بنجاح");
+  if (window.location.pathname.endsWith("login.html")) {
+    window.location.href = "index.html";
+  } else {
+    updateUIAfterLogin();
+  }
 }
 
 function validateAndLogin() {
@@ -787,7 +864,15 @@ function validateAndLogin() {
 
   isLoggedIn = true;
   currentUser = { name, email, phone, isAdmin: ADMIN_EMAILS.includes(email) };
-  updateUIAfterLogin();
+  saveStoredUser(currentUser);
+  window.currentUser = currentUser;
+
+  alert("تم إنشاء الحساب وتسجيل الدخول بنجاح");
+  if (window.location.pathname.endsWith("login.html")) {
+    window.location.href = "index.html";
+  } else {
+    updateUIAfterLogin();
+  }
 }
 
 function simulateGoogleLogin() {
@@ -842,9 +927,11 @@ window.addEventListener("DOMContentLoaded", () => {
     currentUser = storedUser;
     isLoggedIn = true;
     updateAdminLinkVisibility();
+    updateSalesReportIconVisibility();
     document.getElementById("authSection")?.querySelector("button")?.remove();
     updateUIAfterLogin();
   }
+
 });
 
 // --- 6. Profit Edit ---
@@ -863,198 +950,7 @@ function calculateProfitManual() {
   else profitEl.className = "text-success fw-bold";
 }
 
-// --- 7. Wallet System ---
 function formatCurrency(value) {
-  return parseFloat(value || 0).toFixed(2);
+  return Number(value || 0).toFixed(2);
 }
 
-function getLocalWalletKey(email) {
-  const safeEmail =
-    email?.trim().toLowerCase().replace(/[@.]/g, "_") || "guest";
-  return `dropshipWallet_${safeEmail}`;
-}
-
-function loadLocalWallet(email) {
-  if (!email) return { balance: 0, history: [] };
-  const key = getLocalWalletKey(email);
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : { balance: 0, history: [] };
-}
-
-function saveLocalWallet(email, walletData) {
-  if (!email) return;
-  const key = getLocalWalletKey(email);
-  localStorage.setItem(key, JSON.stringify(walletData));
-}
-
-async function getWalletForEmail(email) {
-  if (!email) return { balance: 0, history: [] };
-  const db = getFirestoreDb();
-  const { doc, getDoc } = getFirestoreHelpers();
-
-  if (db && doc && getDoc) {
-    try {
-      const walletRef = doc(db, "Wallets", email);
-      const walletSnap = await getDoc(walletRef);
-      return walletSnap.exists()
-        ? walletSnap.data()
-        : { balance: 0, history: [] };
-    } catch (error) {
-      console.warn(
-        "Firestore wallet read failed, using local fallback:",
-        error,
-      );
-    }
-  }
-
-  return loadLocalWallet(email);
-}
-
-async function saveUserWallet(email, walletData) {
-  const db = getFirestoreDb();
-  const { doc, setDoc } = getFirestoreHelpers();
-  if (db && doc && setDoc) {
-    try {
-      const walletRef = doc(db, "Wallets", email);
-      await setDoc(walletRef, walletData, { merge: true });
-      return;
-    } catch (error) {
-      console.warn(
-        "Firestore wallet save failed, using local fallback:",
-        error,
-      );
-    }
-  }
-  saveLocalWallet(email, walletData);
-}
-
-async function addProfitToWallet(amount, orderId) {
-  if (!currentUser?.email || amount <= 0) return;
-  const wallet = await getWalletForEmail(currentUser.email);
-  wallet.balance = parseFloat(wallet.balance || 0) + parseFloat(amount || 0);
-  wallet.history = wallet.history || [];
-  wallet.history.unshift({
-    type: "income",
-    amount: parseFloat(amount || 0),
-    desc: `ربح طلب #${orderId}`,
-    date: new Date().toLocaleDateString("ar-EG"),
-    time: new Date().toLocaleTimeString("ar-EG"),
-  });
-  await saveUserWallet(currentUser.email, wallet);
-  if (document.getElementById("walletNotif")) {
-    document.getElementById("walletNotif").classList.remove("d-none");
-  }
-}
-
-async function updateWalletUI() {
-  const balanceEl =
-    document.getElementById("walletBalance") ||
-    document.getElementById("current-balance");
-  const pendingProfitEl = document.getElementById("pending-profit");
-  const totalWithdrawnEl = document.getElementById("total-withdrawn");
-  const listContainer = document.getElementById("transactionList");
-  const walletDot = document.getElementById("walletNotif");
-
-  if (!currentUser?.email) {
-    if (balanceEl) balanceEl.innerText = "0.00";
-    if (pendingProfitEl) pendingProfitEl.innerText = "0.00 ج.م";
-    if (totalWithdrawnEl) totalWithdrawnEl.innerText = "0.00 ج.م";
-    if (walletDot) walletDot.classList.add("d-none");
-    if (listContainer) {
-      listContainer.innerHTML =
-        '<div class="text-center text-muted py-4"><p>سجل دخولك أولاً لعرض المحفظة.</p></div>';
-    }
-    return;
-  }
-
-  const wallet = await getWalletForEmail(currentUser.email);
-  if (balanceEl) balanceEl.innerText = formatCurrency(wallet.balance) + " ج.م";
-  if (pendingProfitEl)
-    pendingProfitEl.innerText =
-      formatCurrency(wallet.pendingProfit || 0) + " ج.م";
-  if (totalWithdrawnEl)
-    totalWithdrawnEl.innerText =
-      formatCurrency(wallet.totalWithdrawn || 0) + " ج.م";
-  if (walletDot)
-    walletDot.classList.toggle("d-none", parseFloat(wallet.balance || 0) <= 0);
-
-  if (listContainer) {
-    if (!wallet.history || !wallet.history.length) {
-      listContainer.innerHTML =
-        '<p class="text-muted text-center small py-3">لا توجد معاملات بعد</p>';
-    } else {
-      listContainer.innerHTML = wallet.history
-        .map(
-          (item) => `
-                <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded-4">
-                    <div>
-                        <div class="fw-bold small">${item.desc}</div>
-                        <div class="text-muted" style="font-size: 10px;">${item.date} - ${item.time}</div>
-                    </div>
-                    <div class="fw-bold ${item.type === "income" ? "text-success" : "text-danger"}">
-                        ${item.type === "income" ? "+" : "-"} ${formatCurrency(item.amount)} ج.م
-                    </div>
-                </div>
-            `,
-        )
-        .join("");
-    }
-  }
-}
-
-function toggleWithdrawForm() {
-  const form = document.getElementById("withdrawForm");
-  if (!form) return;
-  form.classList.toggle("d-none");
-}
-
-async function confirmWithdraw() {
-  if (!currentUser?.email) {
-    alert("سجل دخولك أولاً لطلب السحب.");
-    return;
-  }
-
-  const amount =
-    parseFloat(document.getElementById("withdrawAmount").value) || 0;
-  const number = document.getElementById("withdrawNumber").value;
-  const method =
-    document.getElementById("withdrawMethod").options[
-      document.getElementById("withdrawMethod").selectedIndex
-    ].text;
-
-  const wallet = await getWalletForEmail(currentUser.email);
-
-  if (amount <= 0) {
-    alert("برجاء إدخال مبلغ صحيح");
-    return;
-  }
-  if (amount > wallet.balance) {
-    alert("رصيدك غير كافي للسحب!");
-    return;
-  }
-  if (!number || number.length < 8) {
-    alert("برجاء إدخال رقم محفظة صحيح");
-    return;
-  }
-
-  wallet.balance -= amount;
-  wallet.history = wallet.history || [];
-  wallet.history.unshift({
-    type: "withdraw",
-    amount,
-    desc: `سحب (${method})`,
-    date: new Date().toLocaleDateString("ar-EG"),
-    time: new Date().toLocaleTimeString("ar-EG"),
-  });
-
-  await saveUserWallet(currentUser.email, wallet);
-  await updateWalletUI();
-  toggleWithdrawForm();
-  alert(
-    `تم تقديم طلب سحب مبلغ ${formatCurrency(amount)} ج.م بنجاح\nسيتم التحويل إلى ${number} خلال 24 ساعة.`,
-  );
-}
-
-window.updateWalletUI = updateWalletUI;
-window.toggleWithdrawForm = toggleWithdrawForm;
-window.confirmWithdraw = confirmWithdraw;

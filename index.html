@@ -20,29 +20,28 @@
         <div class="d-flex align-items-center gap-4">
             <a class="navbar-brand mb-0" href="#">مكسب <span>برو</span></a>
             
-            <div id="walletButton" class="nav-icon-btn position-relative" title="المحفظة" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#walletModal">
+            <a id="walletButton" class="nav-icon-btn position-relative" title="المحفظة" href="wallet.html">
                 <i class="fa-solid fa-wallet"></i>
-                <span id="walletNotif" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
+                <span id="walletBadge" class="badge-counter d-none"></span>
+            </a>
+
+            <div class="nav-icon-btn position-relative d-none" id="salesReportIcon" title="تقرير المبيعات" onclick="openCustomerSalesSummary()">
+                <i class="fa-solid fa-chart-line"></i>
             </div>
 
             <div class="nav-icon-btn position-relative" title="سلة الطلبات" data-bs-toggle="modal" data-bs-target="#cartModal">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span class="badge-counter" id="cartCount">0</span>
             </div>
-
-            <div class="nav-icon-btn position-relative" title="تقرير المبيعات" onclick="openSalesReport()">
-                <i class="fa-solid fa-chart-bar"></i>
-            </div>
         </div>
 
         <div class="d-flex align-items-center gap-2">
             <a id="adminPanelLink" class="btn btn-outline-light btn-sm d-none" href="admin.html">لوحة الإدارة</a>
-            <button id="userSalesSummaryBtn" class="btn btn-outline-light btn-sm d-none" onclick="openCustomerSalesSummary()">ملخص مبيعاتي</button>
             <button id="themeToggleBtn" class="btn btn-outline-light btn-sm" onclick="toggleDarkMode()" title="تبديل الوضع">
                 <i class="fa-solid fa-moon"></i>
             </button>
             <div id="authSection">
-                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">تسجيل الدخول</button>
+                <a class="btn btn-outline-light btn-sm" href="login.html">تسجيل الدخول</a>
             </div>
         </div>
 
@@ -115,91 +114,6 @@
         <div class="row g-4" id="productsContainer">
             </div>
 
-    </div>
-
-    <div class="modal fade" id="loginModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content auth-modal">
-                <div class="modal-body p-0">
-                    <div class="auth-header text-center px-5 pt-5 pb-4">
-                        <span class="badge rounded-pill bg-white text-primary px-3 py-2 mb-3">مكسب برو</span>
-                        <h4 class="fw-bold mb-2">سجّل دخولك أو أنشئ حساب جديد</h4>
-                        <p class="text-muted mb-0">
-                    </div>
-                    <div class="p-4 auth-body">
-                        <ul class="nav nav-tabs nav-fill mb-4 auth-tabs" id="authTabs" role="tablist">
-                            <li class="nav-item">
-                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab">تسجيل دخول</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#signupTab">إنشاء حساب</button>
-                            </li>
-                        </ul>
-                        <div class="tab-content">
-                            <div class="tab-pane fade show active" id="loginTab">
-                                <div class="mb-4 text-center">
-                                    <h5 class="mb-2">مرحباً بك مجدداً</h5>
-                                    <p class="text-muted small mb-0">قم بتسجيل الدخول لتحصل على تجربة شراء أسرع وإدارة أفضل لحسابك.</p>
-                                </div>
-                                <div class="form-floating mb-3">
-                                    <input type="email" class="form-control" id="loginEmail" placeholder="البريد الإلكتروني">
-                                    <label for="loginEmail">البريد الإلكتروني</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <input type="password" class="form-control" id="loginPassword" placeholder="كلمة المرور">
-                                    <label for="loginPassword">كلمة المرور</label>
-                                </div>
-                                <div class="d-flex justify-content-end mb-3">
-                                    <button type="button" class="btn btn-link p-0 small forgot-link" onclick="forgotPassword()">هل نسيت كلمة المرور؟</button>
-                                </div>
-                                <button type="button" class="btn btn-primary w-100 mb-3" onclick="handleSimpleLogin()">دخول</button>
-                                <div class="d-flex align-items-center my-3">
-                                    <hr class="flex-grow-1">
-                                    <span class="mx-2 text-muted small">أو</span>
-                                    <hr class="flex-grow-1">
-                                </div>
-                                <button id="google-login-btn" type="button" class="btn btn-dark w-100 d-flex align-items-center justify-content-center py-2 rounded-pill">
-                                    <i class="fa-brands fa-google me-2" style="font-size: 20px;"></i>
-                                    <span>المتابعة باستخدام جوجل</span>
-                                </button>
-                            </div>
-                            <div class="tab-pane fade" id="signupTab">
-                                <div class="mb-4 text-center">
-                                    <h5 class="mb-2">إنشاء حساب جديد</h5>
-                                    <p class="text-muted small mb-0">سجّل الآن واستمتع بخصومات ومتابعة أسرع لطلبك.</p>
-                                </div>
-                                <div id="signupAlert" class="alert alert-danger d-none small"></div>
-                                <div class="form-floating mb-3">
-                                    <input type="text" id="newUserName" class="form-control" placeholder="الاسم بالكامل (ثلاثي)">
-                                    <label for="newUserName">الاسم بالكامل</label>
-                                </div>
-                                <div class="form-floating mb-3">
-                                    <input type="email" id="newUserEmail" class="form-control" placeholder="البريد الإلكتروني (example@gmail.com)">
-                                    <label for="newUserEmail">البريد الإلكتروني</label>
-                                </div>
-                                <div class="form-floating mb-3">
-                                    <input type="tel" id="newUserPhone" class="form-control" placeholder="رقم الهاتف (01xxxxxxxxx)" maxlength="11">
-                                    <label for="newUserPhone">رقم الهاتف</label>
-                                </div>
-                                <div class="form-floating mb-3">
-                                    <input type="password" id="newUserPass" class="form-control" placeholder="كلمة المرور (6 أحرف على الأقل)">
-                                    <label for="newUserPass">كلمة المرور</label>
-                                </div>
-                                <div class="form-floating mb-3">
-                                    <input type="password" id="newUserPassConfirm" class="form-control" placeholder="تأكيد كلمة المرور">
-                                    <label for="newUserPassConfirm">تأكيد كلمة المرور</label>
-                                </div>
-                                <div class="mb-3">
-                                    <small class="text-muted">استخدم كلمة مرور قوية تحتوي على حرف كبير ورقم لزيادة الأمان.</small>
-                                </div>
-                                <button type="button" class="btn btn-primary w-100" onclick="validateAndLogin()">إنشاء حساب جديد</button>
-                                <p class="text-center text-muted small mt-3 mb-0">بالضغط على إنشاء حساب، فإنك توافق على الشروط وسياسة الخصوصية.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="modal fade" id="productModal" tabindex="-1">
@@ -291,91 +205,20 @@
         </div>
     </div>
 
-    <div class="modal fade" id="walletModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 overflow-hidden">
-            <div class="modal-header border-0 bg-light">
-                <h5 class="modal-title fw-bold">محفظة الأرباح</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                
-                <div class="wallet-container">
-                    <div class="wallet-card">
-                        <div class="wallet-header d-flex align-items-center justify-content-between mb-3">
-                            <div>
-                                <span class="wallet-label">رصيدك الحالي</span>
-                            </div>
-                            <div class="wallet-icon">
-                                <i class="fas fa-wallet"></i>
-                            </div>
-                        </div>
-                        <div class="wallet-balance mb-3">
-                            <span id="current-balance">0.00</span> <small>ج.م</small>
-                        </div>
-                        <div class="wallet-footer d-flex gap-3 flex-wrap">
-                            <div class="stat p-3 rounded-4 bg-white bg-opacity-15 flex-fill">
-                                <span class="stat-label d-block mb-1">أرباح معلقة</span>
-                                <span id="pending-profit" class="stat-value">0.00 ج.م</span>
-                            </div>
-                            <div class="stat p-3 rounded-4 bg-white bg-opacity-15 flex-fill">
-                                <span class="stat-label d-block mb-1">إجمالي الأرباح</span>
-                                <span id="total-withdrawn" class="stat-value">0.00 ج.م</span>
-                            </div>
-                        </div>
-                        <button id="withdraw-btn" class="withdraw-btn mt-4" onclick="toggleWithdrawForm()">طلب سحب أرباح</button>
-                    </div>
+    <div class="modal fade" id="salesSummaryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0">
+                <div class="modal-header bg-light border-0">
+                    <h5 class="modal-title fw-bold text-primary">📊 ملخص مبيعاتي</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
-                <div id="withdrawForm" class="d-none bg-light p-3 rounded mb-3 border">
-                    <h6 class="fw-bold mb-3">طلب سحب أرباح</h6>
-                    <div class="mb-2">
-                        <label class="small text-muted">وسيلة السحب</label>
-                        <select class="form-select mb-2" id="withdrawMethod">
-                            <option value="vodafone">فودافون كاش</option>
-                            <option value="instapay">انستا باي (InstaPay)</option>
-                        </select>
+                <div class="modal-body p-4" id="salesSummaryContent">
                     </div>
-                    <div class="mb-2">
-                        <label class="small text-muted">رقم المحفظة / العنوان</label>
-                        <input type="tel" class="form-control" id="withdrawNumber" placeholder="01xxxxxxxxx">
-                    </div>
-                    <div class="mb-3">
-                        <label class="small text-muted">المبلغ المراد سحبه</label>
-                        <input type="number" class="form-control" id="withdrawAmount" placeholder="الحد الأدنى 50 ج.م">
-                    </div>
-                    <button class="btn btn-success w-100" onclick="confirmWithdraw()">تأكيد السحب</button>
-                </div>
-
-                <h6 class="fw-bold border-bottom pb-2 mb-3">سجل المعاملات</h6>
-                <div id="transactionList" class="transaction-list" style="max-height: 200px; overflow-y: auto;">
-                    <p class="text-muted text-center small py-3">لا توجد معاملات بعد</p>
-                </div>
-
             </div>
         </div>
     </div>
-</div>
 
-</div>
-
-<div class="modal fade" id="salesSummaryModal" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-white border-0">
-                <h5 class="modal-title fw-bold">ملخص المبيعات الخاص بي</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4" id="salesSummaryContent">
-                <div class="text-center text-muted">
-                    <p>سجل دخولك أولاً ثم اضغط على "ملخص مبيعاتي" لعرض الطلبات الخاصة بك.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-</div> </div> </div> </div> <footer class="main-footer">
+    </div> </div> </div> </div> <footer class="main-footer">
         <div class="container">
             <div class="footer-content">
                 <p class="mb-0">
@@ -406,7 +249,7 @@
 <script src="assets/js/modules/ui.js"></script>
 <script src="assets/js/modules/cart.js"></script>
 <script src="assets/js/modules/sales.js"></script>
-<script src="assets/js/modules/wallet.js"></script>
+
 
 <script type="module" src="auth.js"></script>
 

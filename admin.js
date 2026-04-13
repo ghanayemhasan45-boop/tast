@@ -1,3 +1,12 @@
+import {
+  getFirestore,
+  doc,
+  updateDoc,
+  increment,
+  arrayUnion,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+const db = getFirestore();
 const CURRENT_USER_KEY = "currentUser";
 const ADMIN_EMAILS = ["admin@makasabpro.com", "ghanayemhasan45@gmail.com"];
 const ORDER_STORAGE_KEY = "dropshipOrders";
@@ -15,38 +24,6 @@ function getCurrentUser() {
 
 function isAdminUser(user) {
   return user?.isAdmin || ADMIN_EMAILS.includes(user?.email);
-}
-
-function getUserWalletKey(email) {
-  const safeEmail = email?.trim().toLowerCase() || "guest";
-  return `dropshipWallet_${safeEmail}`;
-}
-
-function loadUserWallet(email) {
-  const key = getUserWalletKey(email);
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : { balance: 0, history: [] };
-}
-
-function saveUserWallet(email, walletData) {
-  const key = getUserWalletKey(email);
-  localStorage.setItem(key, JSON.stringify(walletData));
-}
-
-function addProfitToUserWallet(email, amount, orderId) {
-  if (!email) return;
-  amount = parseFloat(amount) || 0;
-  const wallet = loadUserWallet(email);
-  wallet.balance = parseFloat(wallet.balance || 0) + amount;
-  wallet.history = wallet.history || [];
-  wallet.history.unshift({
-    type: "income",
-    amount,
-    desc: `ربح طلب #${orderId}`,
-    date: new Date().toLocaleDateString("ar-EG"),
-    time: new Date().toLocaleTimeString("ar-EG"),
-  });
-  saveUserWallet(email, wallet);
 }
 
 function loadOrderNotifications() {
@@ -152,7 +129,7 @@ function renderAdminOrders() {
                     </div>
 
                     <div class="mt-4 d-flex flex-wrap gap-2">
-                        ${order.status === "pending" ? `<button class="btn btn-success btn-sm" onclick="confirmOrder('${order.id}')">تأكيد الطلب</button>` : ""}
+                        ${order.status === "pending" ? `<button class="btn btn-success btn-sm" onclick="confirmOrder('${order.id}')">تأكيد الطلب</button>` : order.status === "confirmed" ? `<button class="btn btn-primary btn-sm" onclick="deliverOrder('${order.id}')">تم التسليم</button>` : ""}
                         <button class="btn btn-outline-secondary btn-sm" onclick="copyOrderLink('${order.id}')">نسخ رقم الطلب</button>
                     </div>
                 </div>
@@ -170,7 +147,8 @@ function confirmOrder(orderId) {
 
   order.status = "confirmed";
   order.confirmedAt = new Date().toLocaleString("ar-EG");
-  order.notification = "تم استلام طلبك الآن. فريقنا يعمل على تجهيزه.";
+  order.notification =
+    "تم استلام طلبك الآن. فريقنا يعمل على تجهيزه وتم إضافة أرباح الطلب إلى محفظتك.";
   saveOrders(orders);
   saveOrderNotification(order.id, order.notification);
   renderAdminOrders();
@@ -189,14 +167,44 @@ function deliverOrder(orderId) {
 
   order.status = "delivered";
   order.deliveredAt = new Date().toLocaleString("ar-EG");
-  order.notification = "تم توصيل طلبك بنجاح وتم إضافة أرباحك إلى المحفظة.";
+  order.notification = "تم توصيل طلبك بنجاح.";
   saveOrders(orders);
   saveOrderNotification(order.id, order.notification);
-  addProfitToUserWallet(order.customer.email, order.profit, order.id);
   renderAdminOrders();
 
-  alert(`تم تسليم الطلب ${order.id} وإضافة ربحه إلى محفظة العميل.`);
+  markOrderAsDelivered(
+    order.id,
+    order.marketerEmail,
+    parseFloat(order.profit) || 0,
+  );
+  alert(`تم تسليم الطلب ${order.id} وإضافة ربحه إلى محفظة المسوق.`);
 }
+
+window.markOrderAsDelivered = async function (
+  orderId,
+  marketerEmail,
+  profitAmount,
+) {
+  try {
+    const walletRef = doc(db, "Wallets", marketerEmail);
+    const dateStr = new Date().toLocaleString("ar-EG");
+
+    await updateDoc(walletRef, {
+      balance: increment(profitAmount),
+      history: arrayUnion({
+        type: "income",
+        amount: profitAmount,
+        desc: `أرباح طلب رقم #${orderId.slice(-5)}`,
+        date: dateStr,
+      }),
+    });
+
+    console.log("تم تحديث رصيد المحفظة بنجاح.");
+  } catch (error) {
+    console.error("خطأ في تحديث المحفظة:", error);
+    alert("حدث خطأ أثناء إضافة الأرباح إلى المحفظة.");
+  }
+};
 
 function copyOrderLink(orderId) {
   navigator.clipboard
@@ -234,6 +242,7 @@ function initAdminPage() {
 }
 
 window.confirmOrder = confirmOrder;
+window.deliverOrder = deliverOrder;
 window.copyOrderLink = copyOrderLink;
 
 document.addEventListener("DOMContentLoaded", initAdminPage);

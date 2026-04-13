@@ -1,18 +1,14 @@
 // --- 8. Initialization ---
-window.addEventListener('DOMContentLoaded', () => {
-    renderProducts();
-    updateWalletUI();
-    renderDailySalesSummary();
+window.addEventListener("DOMContentLoaded", () => {
+  renderProducts();
+  renderDailySalesSummary();
 
-    const citySelect = document.getElementById('custCity');
-    if (citySelect) citySelect.addEventListener('change', updateTotal);
+  const citySelect = document.getElementById("custCity");
+  if (citySelect) citySelect.addEventListener("change", updateTotal);
 
-    const finalTotalInput = document.getElementById('finalTotalInput');
-    if (finalTotalInput) finalTotalInput.addEventListener('input', calculateProfitManual);
+  const finalTotalInput = document.getElementById("finalTotalInput");
+  if (finalTotalInput)
+    finalTotalInput.addEventListener("input", calculateProfitManual);
 
-    // فتح نافذة تسجيل الدخول تلقائياً عند فتح الموقع
-    if (!isLoggedIn) {
-        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-        loginModal.show();
-    }
+  // لا نفتح مودال تسجيل الدخول تلقائياً لكي لا يمنع زر المحفظة
 });

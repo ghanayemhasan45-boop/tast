@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل الدخول - مكسب برو</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg fixed-top">
+      <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand mb-0" href="index.html">مكسب <span>برو</span></a>
+        <a class="btn btn-outline-light btn-sm" href="index.html">
+          <i class="fa-solid fa-arrow-left"></i> العودة للموقع
+        </a>
+      </div>
+    </nav>
+
+    <main class="container py-5 mt-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-7">
+          <div class="card rounded-4 shadow-sm overflow-hidden">
+            <div class="card-body p-4">
+              <div class="text-center mb-4">
+                <span class="badge rounded-pill bg-primary text-white px-3 py-2"
+                  >مكسب برو</span
+                >
+                <h2 class="fw-bold mt-3">تسجيل الدخول أو إنشاء حساب جديد</h2>
+                <p class="text-muted mb-0">
+                  سجل الدخول للحصول على تجربة أفضل داخل الموقع.
+                </p>
+              </div>
+
+              <ul
+                class="nav nav-tabs nav-fill mb-4 auth-tabs"
+                id="authTabs"
+                role="tablist"
+              >
+                <li class="nav-item">
+                  <button
+                    class="nav-link active"
+                    data-bs-toggle="tab"
+                    data-bs-target="#loginTab"
+                  >
+                    تسجيل دخول
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button
+                    class="nav-link"
+                    data-bs-toggle="tab"
+                    data-bs-target="#signupTab"
+                  >
+                    إنشاء حساب
+                  </button>
+                </li>
+              </ul>
+
+              <div class="tab-content">
+                <div class="tab-pane fade show active" id="loginTab">
+                  <div class="mb-4 text-center">
+                    <h5 class="mb-2">مرحباً بك مجدداً</h5>
+                    <p class="text-muted small mb-0">
+                      قم بتسجيل الدخول لتحصل على تجربة شراء أسرع وإدارة أفضل
+                      لحسابك.
+                    </p>
+                  </div>
+                  <div class="mb-3">
+                    <label for="loginEmail" class="form-label"
+                      >البريد الإلكتروني</label
+                    >
+                    <input
+                      type="email"
+                      class="form-control"
+                      id="loginEmail"
+                      placeholder="البريد الإلكتروني"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label for="loginPassword" class="form-label"
+                      >كلمة المرور</label
+                    >
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="loginPassword"
+                      placeholder="كلمة المرور"
+                    />
+                  </div>
+                  <div class="d-flex justify-content-end mb-3">
+                    <button
+                      type="button"
+                      class="btn btn-link p-0 small forgot-link"
+                      onclick="forgotPassword()"
+                    >
+                      هل نسيت كلمة المرور؟
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-primary w-100 mb-3"
+                    onclick="handleSimpleLogin()"
+                  >
+                    دخول
+                  </button>
+                  <div class="d-flex align-items-center my-3">
+                    <hr class="flex-grow-1" />
+                    <span class="mx-2 text-muted small">أو</span>
+                    <hr class="flex-grow-1" />
+                  </div>
+                  <button
+                    id="google-login-btn"
+                    type="button"
+                    class="btn btn-dark w-100 d-flex align-items-center justify-content-center py-2 rounded-pill"
+                  >
+                    <i
+                      class="fa-brands fa-google me-2"
+                      style="font-size: 20px"
+                    ></i>
+                    <span>المتابعة باستخدام جوجل</span>
+                  </button>
+                </div>
+
+                <div class="tab-pane fade" id="signupTab">
+                  <div class="mb-4 text-center">
+                    <h5 class="mb-2">إنشاء حساب جديد</h5>
+                    <p class="text-muted small mb-0">
+                      سجّل الآن واستمتع بخصومات ومتابعة أسرع لطلبك.
+                    </p>
+                  </div>
+                  <div
+                    id="signupAlert"
+                    class="alert alert-danger d-none small"
+                  ></div>
+                  <div class="mb-3">
+                    <label for="newUserName" class="form-label"
+                      >الاسم بالكامل</label
+                    >
+                    <input
+                      type="text"
+                      id="newUserName"
+                      class="form-control"
+                      placeholder="الاسم بالكامل (ثلاثي)"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label for="newUserEmail" class="form-label"
+                      >البريد الإلكتروني</label
+                    >
+                    <input
+                      type="email"
+                      id="newUserEmail"
+                      class="form-control"
+                      placeholder="البريد الإلكتروني (example@gmail.com)"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label for="newUserPhone" class="form-label"
+                      >رقم الهاتف</label
+                    >
+                    <input
+                      type="tel"
+                      id="newUserPhone"
+                      class="form-control"
+                      placeholder="رقم الهاتف (01xxxxxxxxx)"
+                      maxlength="11"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label for="newUserPass" class="form-label"
+                      >كلمة المرور</label
+                    >
+                    <input
+                      type="password"
+                      id="newUserPass"
+                      class="form-control"
+                      placeholder="كلمة المرور (6 أحرف على الأقل)"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <label for="newUserPassConfirm" class="form-label"
+                      >تأكيد كلمة المرور</label
+                    >
+                    <input
+                      type="password"
+                      id="newUserPassConfirm"
+                      class="form-control"
+                      placeholder="تأكيد كلمة المرور"
+                    />
+                  </div>
+                  <div class="mb-3">
+                    <small class="text-muted"
+                      >استخدم كلمة مرور قوية تحتوي على حرف كبير ورقم لزيادة
+                      الأمان.</small
+                    >
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-primary w-100"
+                    onclick="validateAndLogin()"
+                  >
+                    إنشاء حساب جديد
+                  </button>
+                  <p class="text-center text-muted small mt-3 mb-0">
+                    بالضغط على إنشاء حساب، فإنك توافق على الشروط وسياسة
+                    الخصوصية.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="data.js"></script>
+    <script src="functions.js"></script>
+    <script type="module" src="auth.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
