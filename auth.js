@@ -27,8 +27,8 @@ const firebaseConfig = {
   projectId: "makasab-pro",
   storageBucket: "makasab-pro.firebasestorage.app",
   messagingSenderId: "1056068624133",
-  appId: "1:1056068624133:web:320877f32e2a8ec8fda16c",
-  measurementId: "G-SBC317XT7S",
+  appId: "1:1056068624133:web:ad9e417d207b8fd2fda16c",
+  measurementId: "G-ZE4YJ931FS"
 };
 
 const app = initializeApp(firebaseConfig);
