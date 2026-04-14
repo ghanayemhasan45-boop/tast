@@ -15,6 +15,10 @@ import {
   setDoc,
   getDoc,
   serverTimestamp,
+  addDoc,
+  query,
+  where,
+  getDocs,
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -30,7 +34,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getFirestore();
 const provider = new GoogleAuthProvider();
 const ADMIN_EMAILS = ["admin@makasabpro.com", "ghanayemhasan45@gmail.com"];
 const CURRENT_USER_KEY = "currentUser";
@@ -43,7 +47,11 @@ window.firestoreHelpers = {
   doc,
   setDoc,
   getDoc,
+  addDoc,
   serverTimestamp,
+  query,
+  where,
+  getDocs,
 };
 
 const googleLoginBtn = document.getElementById("google-login-btn");

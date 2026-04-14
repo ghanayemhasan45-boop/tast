@@ -33,16 +33,6 @@ function updateAdminLinkVisibility() {
   link.classList.toggle("d-none", !isAdminUser(currentUser));
 }
 
-function updateSalesReportIconVisibility() {
-  const icon = document.getElementById("salesReportIcon");
-  if (!icon) return;
-  if (currentUser && !isAdminUser(currentUser)) {
-    icon.classList.remove("d-none");
-  } else {
-    icon.classList.add("d-none");
-  }
-}
-
 function getFirestoreHelpers() {
   return window.firestoreHelpers || {};
 }
@@ -78,8 +68,13 @@ async function saveOrderToFirestore(order) {
   const db = getFirestoreDb();
   const { collection, addDoc } = getFirestoreHelpers();
   if (!db || !collection || !addDoc) return null;
-  const orderRef = await addDoc(collection(db, "Orders"), order);
-  return orderRef.id;
+  try {
+    const orderRef = await addDoc(collection(db, "Orders"), order);
+    return orderRef.id;
+  } catch (error) {
+    console.error("saveOrderToFirestore failed:", error);
+    return null;
+  }
 }
 
 // --- 3. UI & Rendering ---
@@ -309,81 +304,79 @@ function addOrder(order) {
   saveOrders(orders);
 }
 
-async function submitOrder() {
-  if (cart.length === 0) {
-    alert("السلة فارغة!");
-    return;
-  }
+window.submitOrder = async function () {
+  try {
+    const auth = window.auth;
+    const currentUser = auth?.currentUser;
 
-  if (!currentUser?.email) {
-    alert("سجل دخولك أولاً حتى يصل الطلب باسمك كمشترك.");
-    return;
-  }
+    if (!currentUser?.email) {
+      alert("يجب تسجيل الدخول أولاً حتى يتم إرسال الطلب إلى Firebase.");
+      return;
+    }
 
-  const name = document.getElementById("custName").value.trim();
-  const phone1 = document.getElementById("custPhone1").value.trim();
-  const phone2 = document.getElementById("custPhone2").value.trim();
-  const address = document.getElementById("custAddress").value.trim();
-  const city = document.getElementById("custCity").value;
+    if (!Array.isArray(cart) || cart.length === 0) {
+      alert("السلة فارغة! أضف منتجات ثم حاول الإرسال مرة أخرى.");
+      return;
+    }
 
-  if (!name || !phone1 || !address || !city) {
-    alert("برجاء ملء جميع بيانات العميل الأساسية");
-    return;
-  }
+    const name = document.getElementById("custName")?.value.trim() || "";
+    const phone1 = document.getElementById("custPhone1")?.value.trim() || "";
+    const phone2 = document.getElementById("custPhone2")?.value.trim() || "";
+    const address = document.getElementById("custAddress")?.value.trim() || "";
+    const city = document.getElementById("custCity")?.value || "";
 
-  const totalElement = document.getElementById("finalTotalInput");
-  const total = parseFloat(totalElement ? totalElement.value : "0") || 0;
-  const shippingCost = city === "cairo" ? 50 : city === "giza" ? 65 : 0;
-  const currentProfit =
-    parseFloat(document.getElementById("summaryProfit").innerText) || 0;
+    if (!name || !phone1 || !address || !city) {
+      alert("برجاء ملء جميع بيانات العميل الأساسية");
+      return;
+    }
 
-  const items = cart.map((item) => ({
-    id: item.id,
-    title: item.title,
-    qty: 1,
-    wholesale: item.price,
-    selling: parseFloat(item.userSellingPrice || 0),
-  }));
+    const total = parseFloat(document.getElementById("finalTotalInput")?.value || "0") || 0;
+    const profitText = document.getElementById("summaryProfit")?.innerText || "0";
+    const profit = parseFloat(profitText.replace(/[^\d.-]/g, "")) || 0;
 
-  const order = {
-    marketerEmail: currentUser.email,
-    marketerName: currentUser.name,
-    customer: {
-      name,
-      phone1,
-      phone2,
-      address,
-      city,
-      email: currentUser.email,
-    },
-    items,
-    total,
-    shippingCost,
-    profit: currentProfit,
-    status: "pending",
-    createdAt: new Date(),
-    notification: "",
-    confirmedAt: null,
-    deliveredAt: null,
-  };
+    const items = cart.map((item) => ({
+      id: item.id,
+      title: item.title,
+      qty: 1,
+      wholesale: item.price,
+      selling: parseFloat(item.userSellingPrice || 0),
+    }));
 
-  const orderId = await saveOrderToFirestore(order);
-  order.id = orderId || `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`;
-  addOrder(order);
+    const order = {
+      marketerEmail: currentUser.email,
+      marketerName: currentUser.displayName || currentUser.email,
+      customer: {
+        name,
+        phone1,
+        phone2,
+        address,
+        city,
+        email: currentUser.email,
+      },
+      items,
+      total,
+      profit,
+      status: "pending",
+      createdAt: new Date(),
+    };
 
-  cart = [];
-  updateCartUI();
-
-  if (!orderId) {
-    alert(
-      `تم حفظ الطلب محلياً بنجاح. رقم الطلب: ${order.id}. سيتم عرضه في لوحة الإدارة.`,
+    const { getFirestore, collection, addDoc } = await import(
+      "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js",
     );
-  } else {
-    alert(
-      `تم إرسال الطلب إلى مركز القيادة بنجاح. رقم الطلب داخل النظام: ${order.id}`,
-    );
+    const db = getFirestore();
+    const orderRef = await addDoc(collection(db, "Orders"), order);
+
+    cart = [];
+    updateCartUI();
+    document.querySelector("#cartModal .btn-close")?.click();
+
+    alert(`تم إرسال الطلب بنجاح. رقم الطلب: ${orderRef.id}`);
+  } catch (error) {
+    console.error("submitOrder error:", error);
+    alert("حدث خطأ أثناء إرسال الطلب إلى Firebase. الرجاء إعادة المحاولة.");
   }
 }
+
 
 function markOrderConfirmed(orderId) {
   const orders = loadOrders();
@@ -548,7 +541,12 @@ function updateUIAfterLogin() {
 
   saveStoredUser(currentUser);
   updateAdminLinkVisibility();
-  updateSalesReportIconVisibility();
+
+  if (currentUser && !isAdminUser(currentUser)) {
+    document.getElementById("salesReportIcon")?.classList.remove("d-none");
+  } else {
+    document.getElementById("salesReportIcon")?.classList.add("d-none");
+  }
 
   if (typeof renderMarketerDashboard === "function") renderMarketerDashboard();
   alert(`تم تسجيل الدخول بنجاح! \nأهلاً بك يا: ${currentUser.name}`);
@@ -623,180 +621,6 @@ async function renderMarketerDashboard() {
         `;
     })
     .join("");
-}
-
-async function openCustomerSalesSummary() {
-  if (!currentUser?.email) {
-    alert("سجل دخولك أولاً حتى تتمكن من عرض تقرير المبيعات.");
-    return;
-  }
-
-  const db = getFirestoreDb();
-  const {
-    collection,
-    query,
-    where,
-    orderBy,
-    getDocs,
-  } = getFirestoreHelpers();
-
-  if (!db || !collection || !query || !where || !orderBy || !getDocs) {
-    alert(
-      "تعذر الاتصال بمصدر البيانات حالياً. تأكد أن التطبيق يحتوي على إعدادات Firebase صحيحة.",
-    );
-    return;
-  }
-
-  const salesQuery = query(
-    collection(db, "Orders"),
-    where("marketerEmail", "==", currentUser.email),
-    orderBy("createdAt", "desc"),
-  );
-
-  const snapshot = await getDocs(salesQuery);
-  const orders = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
-  const totalRevenue = orders.reduce(
-    (sum, order) => sum + (parseFloat(order.total) || 0),
-    0,
-  );
-
-  const totalProfit = orders.reduce(
-    (sum, order) => sum + (parseFloat(order.profit) || 0),
-    0,
-  );
-
-  const summaryByCity = orders.reduce((summary, order) => {
-    const city = order.customer?.city || "غير معروف";
-    if (!summary[city]) {
-      summary[city] = { revenue: 0, profit: 0, orders: 0 };
-    }
-    summary[city].revenue += parseFloat(order.total) || 0;
-    summary[city].profit += parseFloat(order.profit) || 0;
-    summary[city].orders += 1;
-    return summary;
-  }, {});
-
-  const summaryByProduct = orders.reduce((summary, order) => {
-    (order.items || []).forEach((item) => {
-      if (!summary[item.id]) {
-        summary[item.id] = {
-          title: item.title || "منتج غير معروف",
-          sold: 0,
-          revenue: 0,
-          profit: 0,
-        };
-      }
-      summary[item.id].sold += item.qty || 0;
-      summary[item.id].revenue += parseFloat(item.selling || 0);
-      summary[item.id].profit += parseFloat(item.profit || 0);
-    });
-    return summary;
-  }, {});
-
-  const summaryByCityHtml = Object.entries(summaryByCity)
-    .map(
-      ([city, stats]) => `
-            <div class="sales-summary-card bg-white">
-                <h6 class="mb-2">${city}</h6>
-                <div class="stat-row">
-                    <span class="stat-label">عدد الطلبات</span>
-                    <span class="stat-value">${stats.orders}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">إجمالي البيع</span>
-                    <span class="stat-value">${stats.revenue.toFixed(2)} ج.م</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">إجمالي الربح</span>
-                    <span class="stat-value">${stats.profit.toFixed(2)} ج.م</span>
-                </div>
-            </div>
-        `,
-    )
-    .join("");
-
-  const summaryByProductHtml = Object.values(summaryByProduct)
-    .map(
-      (item) => `
-            <div class="sales-summary-card bg-white">
-                <h6 class="mb-2">${item.title}</h6>
-                <div class="stat-row">
-                    <span class="stat-label">الكمية المباعة</span>
-                    <span class="stat-value">${item.sold}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">إيرادات البيع</span>
-                    <span class="stat-value">${item.revenue.toFixed(2)} ج.م</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">الربح</span>
-                    <span class="stat-value">${item.profit.toFixed(2)} ج.م</span>
-                </div>
-            </div>
-        `,
-    )
-    .join("");
-
-  const recentOrdersHtml = orders
-    .slice(0, 5)
-    .map((order) => {
-      const createdAt = order.createdAt?.seconds
-        ? new Date(order.createdAt.seconds * 1000)
-        : new Date(order.createdAt || Date.now());
-      const formattedDate = `${createdAt.toLocaleDateString("ar-EG")} ${createdAt.toLocaleTimeString("ar-EG")}`;
-      return `
-            <div class="sales-summary-card bg-white">
-                <h6 class="mb-2">طلب #${order.id}</h6>
-                <div class="stat-row">
-                    <span class="stat-label">تاريخ الطلب</span>
-                    <span class="stat-value">${formattedDate}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">البيع الكلي</span>
-                    <span class="stat-value">${parseFloat(order.total || 0).toFixed(2)} ج.م</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">الربح</span>
-                    <span class="stat-value">${parseFloat(order.profit || 0).toFixed(2)} ج.م</span>
-                </div>
-            </div>
-        `;
-    })
-    .join("");
-
-  const modalContent = `
-        <div class="d-flex flex-column gap-3">
-            <div class="row gy-3">
-                <div class="col-12 col-lg-4">
-                    <div class="sales-summary-card bg-white p-3 rounded border">
-                        <h5>مؤشرات المبيعات</h5>
-                        <p class="mb-2">إجمالي البيع: <strong>${formatCurrency(totalRevenue)} ج.م</strong></p>
-                        <p class="mb-0">إجمالي الربح: <strong>${formatCurrency(totalProfit)} ج.م</strong></p>
-                    </div>
-                </div>
-                <div class="col-12 col-lg-4">
-                    <div class="sales-summary-card bg-white p-3 rounded border">
-                        <h5>أبرز المدن</h5>
-                        ${summaryByCityHtml || '<p class="small text-muted">لا توجد بيانات عن المدن.</p>'}
-                    </div>
-                </div>
-                <div class="col-12 col-lg-4">
-                    <div class="sales-summary-card bg-white p-3 rounded border">
-                        <h5>المنتجات الأكثر مبيعاً</h5>
-                        ${summaryByProductHtml || '<p class="small text-muted">لا توجد بيانات عن المنتجات.</p>'}
-                    </div>
-                </div>
-            </div>
-            <div>
-                <h5>آخر الطلبات</h5>
-                ${recentOrdersHtml || '<p class="small text-muted">لا توجد طلبات بعد.</p>'}
-            </div>
-        </div>
-    `;
-
-  document.getElementById("salesSummaryContent").innerHTML = modalContent;
-  new bootstrap.Modal(document.getElementById("salesSummaryModal")).show();
 }
 
 function handleSimpleLogin() {
@@ -927,7 +751,6 @@ window.addEventListener("DOMContentLoaded", () => {
     currentUser = storedUser;
     isLoggedIn = true;
     updateAdminLinkVisibility();
-    updateSalesReportIconVisibility();
     document.getElementById("authSection")?.querySelector("button")?.remove();
     updateUIAfterLogin();
   }

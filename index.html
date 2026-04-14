@@ -20,14 +20,14 @@
         <div class="d-flex align-items-center gap-4">
             <a class="navbar-brand mb-0" href="#">مكسب <span>برو</span></a>
             
+            <a href="report.html" id="salesReportIcon" class="nav-icon-btn position-relative d-none text-white text-decoration-none" title="تقرير المبيعات">
+                <i class="fa-solid fa-chart-line"></i>
+            </a>
+
             <a id="walletButton" class="nav-icon-btn position-relative" title="المحفظة" href="wallet.html">
                 <i class="fa-solid fa-wallet"></i>
                 <span id="walletBadge" class="badge-counter d-none"></span>
             </a>
-
-            <div class="nav-icon-btn position-relative d-none" id="salesReportIcon" title="تقرير المبيعات" onclick="openCustomerSalesSummary()">
-                <i class="fa-solid fa-chart-line"></i>
-            </div>
 
             <div class="nav-icon-btn position-relative" title="سلة الطلبات" data-bs-toggle="modal" data-bs-target="#cartModal">
                 <i class="fa-solid fa-cart-shopping"></i>
@@ -181,9 +181,9 @@
                                     <div class="d-flex justify-content-between mb-1">
                                         <strong>صافي ربحك:</strong>
                                         <strong id="summaryProfit" class="text-success">0</strong>
-                                    
-                                    
-                                        <div class="mb-3 bg-white p-2 rounded border border-warning">
+                                    </div>
+
+                                    <div class="mb-3 bg-white p-2 rounded border border-warning">
                                         <label class="small fw-bold mb-1">المبلغ الإجمالي المتفق عليه (شامل الشحن)</label>
                                         <div class="input-group">
                                             <input type="number" id="finalTotalInput" class="form-control fw-bold fs-5 text-primary" 
@@ -192,28 +192,14 @@
                                         </div>
                                     </div>
 
-
                                     <button type="button" class="whatsapp-btn" onclick="submitOrder()">
-                                        <i class="fa-solid fa-bell me-2"></i> إرسال الطلب للوحة الإدارة
+                                        <i class="fa-solid fa-bell me-2"></i> الطلب الآن
                                     </button>
                                 </form>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="salesSummaryModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content border-0">
-                <div class="modal-header bg-light border-0">
-                    <h5 class="modal-title fw-bold text-primary">📊 ملخص مبيعاتي</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4" id="salesSummaryContent">
-                    </div>
             </div>
         </div>
     </div>
