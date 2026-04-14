@@ -1,5 +1,6 @@
 // --- 2. State ---
 let cart = [];
+window.cart = cart;
 let isLoggedIn = false;
 var currentUser = null;
 const ADMIN_EMAILS = ["admin@makasabpro.com", "ghanayemhasan45@gmail.com"];
@@ -215,6 +216,7 @@ function addToCart(id, btnElement) {
 
 function removeFromCart(cartId) {
   cart = cart.filter((item) => item.cartId !== cartId);
+  window.cart = cart;
   updateCartUI();
 }
 
@@ -368,6 +370,7 @@ window.submitOrder = async function () {
     const orderRef = await addDoc(collection(db, "Orders"), order);
 
     cart = [];
+    window.cart = cart;
     updateCartUI();
     document.querySelector("#cartModal .btn-close")?.click();
 

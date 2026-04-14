@@ -195,20 +195,17 @@ onAuthStateChanged(auth, async (user) => {
     await handleLoginSuccess(user);
   }
 });
-// التأكد من استيراد دالة addDoc (لو مش موجودة فوق، هتشتغل من السطر ده)
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// دالة إرسال الطلب (Global عشان زرار الـ HTML يشوفها)
 window.submitOrder = async function() {
-    console.log("تم الضغط على زر الإرسال!");
+    console.log("1. بدأنا تنفيذ الطلب...");
 
-    // 1. التأكد من تسجيل الدخول
-    if (!auth || !auth.currentUser) {
+    // 1. استخدام window لضمان قراءة المستخدم من النظام القديم
+    if (!window.currentUser || !window.currentUser.email) {
         alert("عذراً، يجب تسجيل الدخول أولاً حتى يتم إرسال الطلب باسمك.");
         return;
     }
+    console.log("2. المستخدم مسجل دخول بإيميل:", window.currentUser.email);
 
-    // 2. جلب بيانات العميل من الفورم
     const name = document.getElementById("custName").value.trim();
     const phone1 = document.getElementById("custPhone1").value.trim();
     const address = document.getElementById("custAddress").value.trim();
@@ -219,54 +216,59 @@ window.submitOrder = async function() {
         return;
     }
 
-    // 3. التأكد إن السلة مش فاضية (بنقرا متغير cart من ملف functions)
-    if (typeof cart === 'undefined' || cart.length === 0) {
+    // 2. استخدام window لضمان قراءة محتوى السلة
+    if (!window.cart || window.cart.length === 0) {
         alert("السلة فارغة! قم بإضافة منتجات أولاً.");
         return;
     }
+    console.log("3. البيانات جاهزة، عدد المنتجات في السلة:", window.cart.length);
 
-    // 4. جلب الإجمالي والربح
     const total = parseFloat(document.getElementById("finalTotalInput").value) || 0;
     const profit = parseFloat(document.getElementById("summaryProfit").innerText) || 0;
 
-    // 5. تغيير شكل الزرار عشان العميل يعرف إنه بيحمل
     const btn = document.querySelector(".whatsapp-btn");
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
-    btn.disabled = true;
+    const originalText = btn ? btn.innerHTML : "الطلب الآن";
+    if(btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> جاري الإرسال...';
+        btn.disabled = true;
+    }
 
     try {
+        console.log("4. جاري الاتصال بـ Firebase...");
         const db = getFirestore();
         
-        // 6. إرسال الطلب لقاعدة البيانات
+        // إرسال الطلب
         const docRef = await addDoc(collection(db, "Orders"), {
-            marketerEmail: auth.currentUser.email,
+            marketerEmail: window.currentUser.email,
             customer: { name, phone1, address, city },
-            items: cart, // المنتجات اللي اختارها
+            items: window.cart,
             total: total,
             profit: profit,
-            status: "pending", // حالة الطلب: قيد الانتظار
-            createdAt: new Date() // وقت الطلب
+            status: "pending", 
+            createdAt: new Date()
         });
 
-        // 7. اللي هيحصل بعد النجاح
-        cart.length = 0; // تفريغ السلة
-        if (typeof updateCartUI === 'function') updateCartUI(); // تحديث شكل السلة
+        console.log("5. تم الإرسال بنجاح! رقم الطلب في الداتا بيز:", docRef.id);
 
-        // قفل نافذة السلة
+        window.cart.length = 0; // تفريغ السلة
+        if (typeof window.updateCartUI === 'function') window.updateCartUI(); 
+
         const modalEl = document.getElementById("cartModal");
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+        if(modalEl){
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
 
-        // إظهار رسالة النجاح
         alert("🎉 تم إرسال الطلب بنجاح للوحة الإدارة! \nرقم طلبك: #" + docRef.id.slice(-5).toUpperCase());
 
     } catch (error) {
-        console.error("خطأ في الإرسال:", error);
-        alert("حدث خطأ أثناء الإرسال. تأكد من اتصال الإنترنت أو إعدادات Firebase.");
+        console.error("6. ❌ خطأ كارثي في الإرسال:", error);
+        alert("حدث خطأ أثناء الإرسال. تأكد من اتصال الإنترنت وإعدادات Firebase.");
     } finally {
-        // إرجاع الزرار لشكله الطبيعي
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        if(btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+        console.log("7. انتهت العملية بالكامل.");
     }
 };
