@@ -195,3 +195,78 @@ onAuthStateChanged(auth, async (user) => {
     await handleLoginSuccess(user);
   }
 });
+// التأكد من استيراد دالة addDoc (لو مش موجودة فوق، هتشتغل من السطر ده)
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// دالة إرسال الطلب (Global عشان زرار الـ HTML يشوفها)
+window.submitOrder = async function() {
+    console.log("تم الضغط على زر الإرسال!");
+
+    // 1. التأكد من تسجيل الدخول
+    if (!auth || !auth.currentUser) {
+        alert("عذراً، يجب تسجيل الدخول أولاً حتى يتم إرسال الطلب باسمك.");
+        return;
+    }
+
+    // 2. جلب بيانات العميل من الفورم
+    const name = document.getElementById("custName").value.trim();
+    const phone1 = document.getElementById("custPhone1").value.trim();
+    const address = document.getElementById("custAddress").value.trim();
+    const city = document.getElementById("custCity").value;
+
+    if (!name || !phone1 || !address || !city) {
+        alert("يرجى ملء جميع البيانات الأساسية (الاسم، الهاتف، العنوان، المحافظة).");
+        return;
+    }
+
+    // 3. التأكد إن السلة مش فاضية (بنقرا متغير cart من ملف functions)
+    if (typeof cart === 'undefined' || cart.length === 0) {
+        alert("السلة فارغة! قم بإضافة منتجات أولاً.");
+        return;
+    }
+
+    // 4. جلب الإجمالي والربح
+    const total = parseFloat(document.getElementById("finalTotalInput").value) || 0;
+    const profit = parseFloat(document.getElementById("summaryProfit").innerText) || 0;
+
+    // 5. تغيير شكل الزرار عشان العميل يعرف إنه بيحمل
+    const btn = document.querySelector(".whatsapp-btn");
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
+    btn.disabled = true;
+
+    try {
+        const db = getFirestore();
+        
+        // 6. إرسال الطلب لقاعدة البيانات
+        const docRef = await addDoc(collection(db, "Orders"), {
+            marketerEmail: auth.currentUser.email,
+            customer: { name, phone1, address, city },
+            items: cart, // المنتجات اللي اختارها
+            total: total,
+            profit: profit,
+            status: "pending", // حالة الطلب: قيد الانتظار
+            createdAt: new Date() // وقت الطلب
+        });
+
+        // 7. اللي هيحصل بعد النجاح
+        cart.length = 0; // تفريغ السلة
+        if (typeof updateCartUI === 'function') updateCartUI(); // تحديث شكل السلة
+
+        // قفل نافذة السلة
+        const modalEl = document.getElementById("cartModal");
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        // إظهار رسالة النجاح
+        alert("🎉 تم إرسال الطلب بنجاح للوحة الإدارة! \nرقم طلبك: #" + docRef.id.slice(-5).toUpperCase());
+
+    } catch (error) {
+        console.error("خطأ في الإرسال:", error);
+        alert("حدث خطأ أثناء الإرسال. تأكد من اتصال الإنترنت أو إعدادات Firebase.");
+    } finally {
+        // إرجاع الزرار لشكله الطبيعي
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+};

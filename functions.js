@@ -330,8 +330,10 @@ window.submitOrder = async function () {
       return;
     }
 
-    const total = parseFloat(document.getElementById("finalTotalInput")?.value || "0") || 0;
-    const profitText = document.getElementById("summaryProfit")?.innerText || "0";
+    const total =
+      parseFloat(document.getElementById("finalTotalInput")?.value || "0") || 0;
+    const profitText =
+      document.getElementById("summaryProfit")?.innerText || "0";
     const profit = parseFloat(profitText.replace(/[^\d.-]/g, "")) || 0;
 
     const items = cart.map((item) => ({
@@ -360,9 +362,8 @@ window.submitOrder = async function () {
       createdAt: new Date(),
     };
 
-    const { getFirestore, collection, addDoc } = await import(
-      "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js",
-    );
+    const { getFirestore, collection, addDoc } =
+      await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js");
     const db = getFirestore();
     const orderRef = await addDoc(collection(db, "Orders"), order);
 
@@ -375,8 +376,7 @@ window.submitOrder = async function () {
     console.error("submitOrder error:", error);
     alert("حدث خطأ أثناء إرسال الطلب إلى Firebase. الرجاء إعادة المحاولة.");
   }
-}
-
+};
 
 function markOrderConfirmed(orderId) {
   const orders = loadOrders();
@@ -754,7 +754,6 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("authSection")?.querySelector("button")?.remove();
     updateUIAfterLogin();
   }
-
 });
 
 // --- 6. Profit Edit ---
@@ -776,4 +775,3 @@ function calculateProfitManual() {
 function formatCurrency(value) {
   return Number(value || 0).toFixed(2);
 }
-
