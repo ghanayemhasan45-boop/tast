@@ -307,78 +307,10 @@ function addOrder(order) {
 }
 
 window.submitOrder = async function () {
-  try {
-    const auth = window.auth;
-    const currentUser = auth?.currentUser;
-
-    if (!currentUser?.email) {
-      alert("يجب تسجيل الدخول أولاً حتى يتم إرسال الطلب إلى Firebase.");
-      return;
-    }
-
-    if (!Array.isArray(cart) || cart.length === 0) {
-      alert("السلة فارغة! أضف منتجات ثم حاول الإرسال مرة أخرى.");
-      return;
-    }
-
-    const name = document.getElementById("custName")?.value.trim() || "";
-    const phone1 = document.getElementById("custPhone1")?.value.trim() || "";
-    const phone2 = document.getElementById("custPhone2")?.value.trim() || "";
-    const address = document.getElementById("custAddress")?.value.trim() || "";
-    const city = document.getElementById("custCity")?.value || "";
-
-    if (!name || !phone1 || !address || !city) {
-      alert("برجاء ملء جميع بيانات العميل الأساسية");
-      return;
-    }
-
-    const total =
-      parseFloat(document.getElementById("finalTotalInput")?.value || "0") || 0;
-    const profitText =
-      document.getElementById("summaryProfit")?.innerText || "0";
-    const profit = parseFloat(profitText.replace(/[^\d.-]/g, "")) || 0;
-
-    const items = cart.map((item) => ({
-      id: item.id,
-      title: item.title,
-      qty: 1,
-      wholesale: item.price,
-      selling: parseFloat(item.userSellingPrice || 0),
-    }));
-
-    const order = {
-      marketerEmail: currentUser.email,
-      marketerName: currentUser.displayName || currentUser.email,
-      customer: {
-        name,
-        phone1,
-        phone2,
-        address,
-        city,
-        email: currentUser.email,
-      },
-      items,
-      total,
-      profit,
-      status: "pending",
-      createdAt: new Date(),
-    };
-
-    const { getFirestore, collection, addDoc } =
-      await import("https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js");
-    const db = getFirestore();
-    const orderRef = await addDoc(collection(db, "Orders"), order);
-
-    cart = [];
-    window.cart = cart;
-    updateCartUI();
-    document.querySelector("#cartModal .btn-close")?.click();
-
-    alert(`تم إرسال الطلب بنجاح. رقم الطلب: ${orderRef.id}`);
-  } catch (error) {
-    console.error("submitOrder error:", error);
-    alert("حدث خطأ أثناء إرسال الطلب إلى Firebase. الرجاء إعادة المحاولة.");
+  if (typeof window.submitOrderAuth === "function") {
+    return window.submitOrderAuth();
   }
+  alert("جاري تحميل نظام الطلب. يرجى إعادة تحميل الصفحة إذا استمر الخطأ.");
 };
 
 function markOrderConfirmed(orderId) {

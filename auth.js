@@ -1,40 +1,20 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  GoogleAuthProvider,
-  sendPasswordResetEmail,
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp,
-  addDoc,
-  query,
-  where,
-  getDocs,
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDDOfl6AlQQHTH_UZD-GQv6mninKHZKtgY",
-  authDomain: "makasab-pro.firebaseapp.com",
-  projectId: "makasab-pro",
-  storageBucket: "makasab-pro.firebasestorage.app",
-  messagingSenderId: "1056068624133",
-  appId: "1:1056068624133:web:ad9e417d207b8fd2fda16c",
-  measurementId: "G-ZE4YJ931FS"
+    apiKey: "AIzaSyDDOfl6AlQQHTH_UZD-GQv6mninKHZKtgY",
+    authDomain: "makasab-pro.firebaseapp.com",
+    projectId: "makasab-pro",
+    storageBucket: "makasab-pro.firebasestorage.app",
+    messagingSenderId: "1056068624133",
+    appId: "1:1056068624133:web:ad9e417d207b8fd2fda16c",
+    measurementId: "G-ZE4YJ931FS"
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+const db = getFirestore(app);
 const auth = getAuth(app);
-const db = getFirestore();
 const provider = new GoogleAuthProvider();
 const ADMIN_EMAILS = ["admin@makasabpro.com", "ghanayemhasan45@gmail.com"];
 const CURRENT_USER_KEY = "currentUser";
@@ -196,15 +176,15 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-window.submitOrder = async function() {
+window.submitOrderAuth = async function() {
     console.log("1. بدأنا تنفيذ الطلب...");
 
-    // 1. استخدام window لضمان قراءة المستخدم من النظام القديم
-    if (!window.currentUser || !window.currentUser.email) {
-        alert("عذراً، يجب تسجيل الدخول أولاً حتى يتم إرسال الطلب باسمك.");
+    const currentUser = window.currentUser || auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+        alert("عذراً، يجب تسجيل الدخول أولاً.");
         return;
     }
-    console.log("2. المستخدم مسجل دخول بإيميل:", window.currentUser.email);
+    console.log("2. المستخدم مسجل دخول بإيميل:", currentUser.email);
 
     const name = document.getElementById("custName").value.trim();
     const phone1 = document.getElementById("custPhone1").value.trim();
@@ -212,16 +192,21 @@ window.submitOrder = async function() {
     const city = document.getElementById("custCity").value;
 
     if (!name || !phone1 || !address || !city) {
-        alert("يرجى ملء جميع البيانات الأساسية (الاسم، الهاتف، العنوان، المحافظة).");
+        alert("يرجى ملء جميع البيانات الأساسية.");
         return;
     }
 
-    // 2. استخدام window لضمان قراءة محتوى السلة
-    if (!window.cart || window.cart.length === 0) {
-        alert("السلة فارغة! قم بإضافة منتجات أولاً.");
+    const orderItems = Array.isArray(window.cart)
+        ? window.cart
+        : Array.isArray(cart)
+            ? cart
+            : [];
+
+    if (orderItems.length === 0) {
+        alert("السلة فارغة!");
         return;
     }
-    console.log("3. البيانات جاهزة، عدد المنتجات في السلة:", window.cart.length);
+    console.log("3. البيانات جاهزة، عدد المنتجات في السلة:", orderItems.length);
 
     const total = parseFloat(document.getElementById("finalTotalInput").value) || 0;
     const profit = parseFloat(document.getElementById("summaryProfit").innerText) || 0;
@@ -235,22 +220,34 @@ window.submitOrder = async function() {
 
     try {
         console.log("4. جاري الاتصال بـ Firebase...");
-        const db = getFirestore();
-        
-        // إرسال الطلب
-        const docRef = await addDoc(collection(db, "Orders"), {
-            marketerEmail: window.currentUser.email,
+        console.log("db:", db, "collection:", collection, "addDoc:", addDoc);
+
+        if (!db || typeof collection !== "function" || typeof addDoc !== "function") {
+            throw new Error("Firebase غير مهيأ بشكل صحيح. تأكد من استيراد getFirestore و collection و addDoc.");
+        }
+
+        const addDocPromise = addDoc(collection(db, "Orders"), {
+            marketerEmail: currentUser.email,
             customer: { name, phone1, address, city },
-            items: window.cart,
+            items: orderItems,
             total: total,
             profit: profit,
             status: "pending", 
             createdAt: new Date()
         });
 
-        console.log("5. تم الإرسال بنجاح! رقم الطلب في الداتا بيز:", docRef.id);
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(
+                () => reject(new Error("انتهى وقت الاتصال بـ Firebase بعد 10 ثوانٍ. تحقق من الشبكة أو إعدادات Firestore.")),
+                10000,
+            ),
+        );
 
-        window.cart.length = 0; // تفريغ السلة
+        const docRef = await Promise.race([addDocPromise, timeoutPromise]);
+
+        console.log("5. تم الإرسال بنجاح! رقم الطلب:", docRef.id);
+
+        window.cart.length = 0; 
         if (typeof window.updateCartUI === 'function') window.updateCartUI(); 
 
         const modalEl = document.getElementById("cartModal");
@@ -262,13 +259,17 @@ window.submitOrder = async function() {
         alert("🎉 تم إرسال الطلب بنجاح للوحة الإدارة! \nرقم طلبك: #" + docRef.id.slice(-5).toUpperCase());
 
     } catch (error) {
-        console.error("6. ❌ خطأ كارثي في الإرسال:", error);
-        alert("حدث خطأ أثناء الإرسال. تأكد من اتصال الإنترنت وإعدادات Firebase.");
+        console.error("6. ❌ خطأ في الإرسال:", error);
+        alert("حدث خطأ أثناء الإرسال: " + (error.message || error));
     } finally {
         if(btn) {
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
-        console.log("7. انتهت العملية بالكامل.");
+        console.log("7. انتهت العملية.");
     }
 };
+
+window.submitOrder = window.submitOrderAuth;
+console.log("auth.js: submitOrderAuth is loaded and hooked");
+
