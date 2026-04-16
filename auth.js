@@ -176,6 +176,29 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+const ORDER_STORAGE_KEY = "dropshipOrders";
+
+function loadLocalOrders() {
+    const data = localStorage.getItem(ORDER_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+}
+
+function saveLocalOrders(orders) {
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
+}
+
+function addLocalOrder(order) {
+    const orders = loadLocalOrders();
+    orders.unshift(order);
+    saveLocalOrders(orders);
+}
+
+function shippingCostForCity(city) {
+    if (city === "cairo") return 50;
+    if (city === "giza") return 65;
+    return 0;
+}
+
 window.submitOrderAuth = async function() {
     console.log("1. بدأنا تنفيذ الطلب...");
 
@@ -246,6 +269,36 @@ window.submitOrderAuth = async function() {
         const docRef = await Promise.race([addDocPromise, timeoutPromise]);
 
         console.log("5. تم الإرسال بنجاح! رقم الطلب:", docRef.id);
+
+        const localOrder = {
+            id: docRef.id,
+            marketerEmail: currentUser.email,
+            customer: {
+                name,
+                phone1,
+                phone2: document.getElementById("custPhone2")?.value.trim() || "",
+                address,
+                city,
+                email: currentUser.email,
+            },
+            items: orderItems,
+            total,
+            profit,
+            shippingCost: shippingCostForCity(city),
+            status: "pending",
+            date: new Date().toLocaleString("ar-EG"),
+        };
+
+        try {
+            if (typeof window.addOrder === "function") {
+                window.addOrder(localOrder);
+            } else {
+                addLocalOrder(localOrder);
+            }
+        } catch (localError) {
+            console.warn("تعذّر حفظ الطلب محلياً:", localError);
+            addLocalOrder(localOrder);
+        }
 
         window.cart.length = 0; 
         if (typeof window.updateCartUI === 'function') window.updateCartUI(); 

@@ -1,16 +1,22 @@
-import {
-  getFirestore,
-  doc,
-  updateDoc,
-  increment,
-  arrayUnion,
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-
-const db = getFirestore();
 const CURRENT_USER_KEY = "currentUser";
 const ADMIN_EMAILS = ["admin@makasabpro.com", "ghanayemhasan45@gmail.com"];
 const ORDER_STORAGE_KEY = "dropshipOrders";
 const ORDER_NOTIFICATIONS_KEY = "dropshipOrderNotifications";
+
+const db = window.db || null;
+const {
+  collection,
+  doc,
+  updateDoc,
+  increment,
+  arrayUnion,
+  getDocs,
+  getDoc,
+  setDoc,
+  query,
+  orderBy,
+  serverTimestamp,
+} = window.firestoreHelpers || {};
 
 function getCurrentUser() {
   const stored = localStorage.getItem(CURRENT_USER_KEY);
@@ -45,6 +51,72 @@ function saveOrderNotification(orderId, message) {
   saveOrderNotifications(notifs);
 }
 
+async function loadFirestoreOrders() {
+  if (!db || !getDocs || !collection || !query || !orderBy) return [];
+  try {
+    const ordersQuery = query(
+      collection(db, "Orders"),
+      orderBy("createdAt", "desc"),
+    );
+    const snapshot = await getDocs(ordersQuery);
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      const createdAt = data.createdAt?.seconds
+        ? new Date(data.createdAt.seconds * 1000)
+        : data.createdAt?.toDate
+        ? data.createdAt.toDate()
+        : new Date(data.createdAt || Date.now());
+      return {
+        ...data,
+        id: docSnap.id,
+        date: createdAt.toLocaleString("ar-EG"),
+        items: Array.isArray(data.items) ? data.items : [],
+        customer: data.customer || {},
+      };
+    });
+  } catch (error) {
+    console.warn("تعذّر جلب الطلبات من Firestore:", error);
+    return [];
+  }
+}
+
+async function loadFirestoreOrderById(orderId) {
+  if (!db || !doc || !getDoc) return null;
+  try {
+    const orderRef = doc(db, "Orders", orderId);
+    const snapshot = await getDoc(orderRef);
+    if (!snapshot.exists()) return null;
+
+    const data = snapshot.data();
+    const createdAt = data.createdAt?.seconds
+      ? new Date(data.createdAt.seconds * 1000)
+      : data.createdAt?.toDate
+      ? data.createdAt.toDate()
+      : new Date(data.createdAt || Date.now());
+
+    return {
+      ...data,
+      id: snapshot.id,
+      date: createdAt.toLocaleString("ar-EG"),
+      items: Array.isArray(data.items) ? data.items : [],
+      customer: data.customer || {},
+    };
+  } catch (error) {
+    console.warn("تعذّر جلب الطلب من Firestore:", error);
+    return null;
+  }
+}
+
+function mergeOrders(localOrders, firestoreOrders) {
+  const merged = [...firestoreOrders];
+  localOrders.forEach((localOrder) => {
+    if (!merged.some((order) => order.id === localOrder.id)) {
+      merged.push(localOrder);
+    }
+  });
+  return merged;
+}
+
 function loadOrders() {
   const data = localStorage.getItem(ORDER_STORAGE_KEY);
   return data ? JSON.parse(data) : [];
@@ -54,8 +126,15 @@ function saveOrders(orders) {
   localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
 }
 
-function renderAdminOrders() {
-  const orders = loadOrders();
+async function renderAdminOrders() {
+  const localOrders = loadOrders();
+  let orders = localOrders;
+
+  const firestoreOrders = await loadFirestoreOrders();
+  if (firestoreOrders.length) {
+    orders = mergeOrders(localOrders, firestoreOrders);
+  }
+
   const pendingOrders = orders.filter((o) => o.status === "pending");
   const confirmedOrders = orders.filter(
     (o) => o.status === "confirmed" || o.status === "delivered",
@@ -116,12 +195,12 @@ function renderAdminOrders() {
 
                     <div class="mt-4">
                         <h6 class="mb-3">تفاصيل المنتجات</h6>
-                        ${order.items
+                        ${(Array.isArray(order.items) ? order.items : [])
                           .map(
                             (item) => `
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span>${item.title} (x${item.qty})</span>
-                                <span>${item.selling.toFixed(2)} ج.م</span>
+                                <span>${item.selling?.toFixed ? item.selling.toFixed(2) : item.selling || 0} ج.م</span>
                             </div>
                         `,
                           )
@@ -139,9 +218,16 @@ function renderAdminOrders() {
     .join("");
 }
 
-function confirmOrder(orderId) {
-  const orders = loadOrders();
-  const order = orders.find((o) => o.id === orderId);
+async function confirmOrder(orderId) {
+  let orders = loadOrders();
+  let order = orders.find((o) => o.id === orderId);
+  let isRemote = false;
+
+  if (!order) {
+    order = await loadFirestoreOrderById(orderId);
+    isRemote = !!order;
+  }
+
   if (!order) return;
   if (order.status === "confirmed" || order.status === "delivered") return;
 
@@ -149,16 +235,35 @@ function confirmOrder(orderId) {
   order.confirmedAt = new Date().toLocaleString("ar-EG");
   order.notification =
     "تم استلام طلبك الآن. فريقنا يعمل على تجهيزه وتم إضافة أرباح الطلب إلى محفظتك.";
-  saveOrders(orders);
+
+  if (isRemote) {
+    orders.unshift(order);
+    saveOrders(orders);
+  } else {
+    saveOrders(orders);
+  }
+
   saveOrderNotification(order.id, order.notification);
   renderAdminOrders();
 
-  alert(`تم تأكيد الطلب ${order.id} وتم إرسال إشعار استلام العميل.`);
+  if (db && order.marketerEmail) {
+    await addProfitToWallet(order.id, order.marketerEmail, parseFloat(order.profit) || 0);
+    await syncOrderStatusToFirestore(orderId, "confirmed", order.notification);
+  }
+
+  alert(`تم تأكيد الطلب ${order.id} وتم إضافة ربحه إلى محفظة العميل.`);
 }
 
-function deliverOrder(orderId) {
-  const orders = loadOrders();
-  const order = orders.find((o) => o.id === orderId);
+async function deliverOrder(orderId) {
+  let orders = loadOrders();
+  let order = orders.find((o) => o.id === orderId);
+  let isRemote = false;
+
+  if (!order) {
+    order = await loadFirestoreOrderById(orderId);
+    isRemote = !!order;
+  }
+
   if (!order) return;
   if (order.status !== "confirmed") {
     alert("يمكنك تسليم الطلب بعد تأكيده فقط.");
@@ -168,43 +273,75 @@ function deliverOrder(orderId) {
   order.status = "delivered";
   order.deliveredAt = new Date().toLocaleString("ar-EG");
   order.notification = "تم توصيل طلبك بنجاح.";
-  saveOrders(orders);
+
+  if (isRemote) {
+    orders.unshift(order);
+    saveOrders(orders);
+  } else {
+    saveOrders(orders);
+  }
+
   saveOrderNotification(order.id, order.notification);
   renderAdminOrders();
 
-  markOrderAsDelivered(
-    order.id,
-    order.marketerEmail,
-    parseFloat(order.profit) || 0,
-  );
-  alert(`تم تسليم الطلب ${order.id} وإضافة ربحه إلى محفظة المسوق.`);
+  await syncOrderStatusToFirestore(orderId, "delivered", order.notification);
+  alert(`تم تسليم الطلب ${order.id} بنجاح.`);
 }
 
-window.markOrderAsDelivered = async function (
-  orderId,
-  marketerEmail,
-  profitAmount,
-) {
+async function addProfitToWallet(orderId, marketerEmail, profitAmount) {
+  if (!db || !doc || !getDoc || !setDoc || !updateDoc) {
+    console.warn("Firebase غير متوفر لتحديث المحفظة.");
+    return;
+  }
+
   try {
     const walletRef = doc(db, "Wallets", marketerEmail);
     const dateStr = new Date().toLocaleString("ar-EG");
+    const profitRecord = {
+      type: "income",
+      amount: profitAmount,
+      desc: `أرباح طلب رقم #${orderId.slice(-5)}`,
+      date: dateStr,
+    };
 
-    await updateDoc(walletRef, {
-      balance: increment(profitAmount),
-      history: arrayUnion({
-        type: "income",
-        amount: profitAmount,
-        desc: `أرباح طلب رقم #${orderId.slice(-5)}`,
-        date: dateStr,
-      }),
-    });
+    const walletSnap = await getDoc(walletRef);
+    if (walletSnap.exists()) {
+      await updateDoc(walletRef, {
+        balance: increment(profitAmount),
+        history: arrayUnion(profitRecord),
+      });
+    } else {
+      await setDoc(walletRef, {
+        balance: profitAmount,
+        pending: 0,
+        totalWithdrawn: 0,
+        history: [profitRecord],
+      });
+    }
 
     console.log("تم تحديث رصيد المحفظة بنجاح.");
   } catch (error) {
     console.error("خطأ في تحديث المحفظة:", error);
     alert("حدث خطأ أثناء إضافة الأرباح إلى المحفظة.");
   }
-};
+}
+
+async function syncOrderStatusToFirestore(orderId, status, notification) {
+  if (!db || !doc || !updateDoc) return;
+  try {
+    const orderRef = doc(db, "Orders", orderId);
+    const payload = {
+      status,
+      notification,
+    };
+    if (status === "confirmed") payload.confirmedAt = new Date();
+    if (status === "delivered") payload.deliveredAt = new Date();
+
+    await updateDoc(orderRef, payload);
+  } catch (error) {
+    console.warn("فشل مزامنة حالة الطلب إلى Firestore:", error);
+  }
+}
 
 function copyOrderLink(orderId) {
   navigator.clipboard
