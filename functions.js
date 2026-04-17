@@ -16,6 +16,8 @@ function loadStoredUser() {
   }
 }
 
+const REGISTERED_USERS_KEY = "registeredUsers";
+
 function saveStoredUser(user) {
   if (!user) {
     localStorage.removeItem(CURRENT_USER_KEY);
@@ -23,6 +25,58 @@ function saveStoredUser(user) {
   }
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
 }
+
+function loadRegisteredUsers() {
+  const stored = localStorage.getItem(REGISTERED_USERS_KEY);
+  if (!stored) return {};
+  try {
+    return JSON.parse(stored) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRegisteredUsers(users) {
+  localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users || {}));
+}
+
+function getRegisteredUserByEmail(email) {
+  if (!email) return null;
+  const users = loadRegisteredUsers();
+  return users[email.toLowerCase()] || null;
+}
+
+function addRegisteredUser(user) {
+  if (!user?.email) return;
+  const users = loadRegisteredUsers();
+  users[user.email.toLowerCase()] = {
+    name: user.name,
+    email: user.email,
+    phone: user.phone || "",
+    password: user.password || "",
+    isAdmin: user.isAdmin || ADMIN_EMAILS.includes(user.email),
+  };
+  saveRegisteredUsers(users);
+}
+
+function notify(message, type = "info") {
+  if (typeof showAppMessage === "function") {
+    showAppMessage(message, type);
+  } else {
+    alert(message);
+  }
+}
+
+window.togglePasswordField = function (fieldId, iconId) {
+  const field = document.getElementById(fieldId);
+  const icon = document.getElementById(iconId);
+  if (!field || !icon) return;
+
+  const isHidden = field.type === "password";
+  field.type = isHidden ? "text" : "password";
+  icon.classList.toggle("fa-eye", !isHidden);
+  icon.classList.toggle("fa-eye-slash", isHidden);
+};
 
 function isAdminUser(user) {
   return user?.isAdmin || ADMIN_EMAILS.includes(user?.email);
@@ -186,8 +240,9 @@ function showProductDetails(id) {
 function downloadProductResources(id) {
   const p = products.find((x) => x.id === id);
   if (!p) return;
-  alert(
+  notify(
     `جاري تحميل صور ووصف المنتج: ${p.title}\n(سيتم فتح الصورة في نافذة جديدة)`,
+    "info",
   );
   window.open(p.image, "_blank");
 }
@@ -310,7 +365,10 @@ window.submitOrder = async function () {
   if (typeof window.submitOrderAuth === "function") {
     return window.submitOrderAuth();
   }
-  alert("جاري تحميل نظام الطلب. يرجى إعادة تحميل الصفحة إذا استمر الخطأ.");
+  notify(
+    "جاري تحميل نظام الطلب. يرجى إعادة تحميل الصفحة إذا استمر الخطأ.",
+    "error",
+  );
 };
 
 function markOrderConfirmed(orderId) {
@@ -364,7 +422,7 @@ function checkCustomerOrderNotifications() {
 
   const notif = getOrderNotification(matchedOrder.id);
   if (notif) {
-    alert(`📣 إشعار للعميل:\n${notif.message}`);
+    notify(`📣 إشعار للعميل:\n${notif.message}`, "info");
     deleteOrderNotification(matchedOrder.id);
   }
 }
@@ -459,12 +517,15 @@ function renderDailySalesSummary() {
 
 // --- 5. Auth & Profile ---
 function updateUIAfterLogin() {
-  document.getElementById("authSection").innerHTML = `
+  const authSection = document.getElementById("authSection");
+  if (authSection) {
+    authSection.innerHTML = `
         <div class="user-profile-trigger" data-bs-toggle="offcanvas" data-bs-target="#profileSidebar">
             <i class="fa-solid fa-user-circle"></i>
             <span>${currentUser.name}</span>
         </div>
     `;
+  }
 
   if (document.getElementById("profileName"))
     document.getElementById("profileName").value = currentUser.name;
@@ -483,8 +544,8 @@ function updateUIAfterLogin() {
     document.getElementById("salesReportIcon")?.classList.add("d-none");
   }
 
-  if (typeof renderMarketerDashboard === "function") renderMarketerDashboard();
-  alert(`تم تسجيل الدخول بنجاح! \nأهلاً بك يا: ${currentUser.name}`);
+  //  if (typeof renderMarketerDashboard === "function") renderMarketerDashboard();
+  console.log(`تم تسجيل الدخول بنجاح! أهلاً بك يا: ${currentUser.name}`);
   checkCustomerOrderNotifications();
 }
 
@@ -563,25 +624,38 @@ function handleSimpleLogin() {
   const password = document.getElementById("loginPassword").value.trim();
 
   if (!email || !password) {
-    alert("يرجى إدخال البريد الإلكتروني وكلمة المرور للدخول");
+    notify("يرجى إدخال البريد الإلكتروني وكلمة المرور للدخول", "info");
+    return;
+  }
+
+  const registeredUser = getRegisteredUserByEmail(email);
+  if (!registeredUser) {
+    notify("هذا البريد الإلكتروني غير مسجّل. الرجاء إنشاء حساب جديد.", "error");
+    return;
+  }
+
+  if (registeredUser.password !== password) {
+    notify("كلمة المرور غير صحيحة. حاول مرة أخرى.", "error");
     return;
   }
 
   isLoggedIn = true;
   currentUser = {
     name:
+      registeredUser.name ||
       email
         .split("@")[0]
         .replace(/[\W_]+/g, " ")
-        .trim() || "مستخدم",
-    email,
-    phone: "",
-    isAdmin: ADMIN_EMAILS.includes(email),
+        .trim() ||
+      "مستخدم",
+    email: registeredUser.email,
+    phone: registeredUser.phone || "",
+    isAdmin: registeredUser.isAdmin || ADMIN_EMAILS.includes(email),
   };
   saveStoredUser(currentUser);
   window.currentUser = currentUser;
 
-  alert("تم تسجيل الدخول بنجاح");
+  console.log("تم تسجيل الدخول بنجاح");
   if (window.location.pathname.endsWith("login.html")) {
     window.location.href = "index.html";
   } else {
@@ -604,6 +678,8 @@ function validateAndLogin() {
     alertBox.classList.remove("d-none");
   }
 
+  alertBox.classList.add("d-none");
+
   if (name.length < 5) {
     showError("الاسم قصير جداً");
     return;
@@ -621,12 +697,26 @@ function validateAndLogin() {
     return;
   }
 
+  const existingUser = getRegisteredUserByEmail(email);
+  if (existingUser) {
+    showError("هذا البريد الإلكتروني مسجّل بالفعل. الرجاء تسجيل الدخول.");
+    return;
+  }
+
+  addRegisteredUser({
+    name,
+    email,
+    phone,
+    password: pass,
+    isAdmin: ADMIN_EMAILS.includes(email),
+  });
+
   isLoggedIn = true;
   currentUser = { name, email, phone, isAdmin: ADMIN_EMAILS.includes(email) };
   saveStoredUser(currentUser);
   window.currentUser = currentUser;
 
-  alert("تم إنشاء الحساب وتسجيل الدخول بنجاح");
+  console.log("تم إنشاء الحساب وتسجيل الدخول بنجاح");
   if (window.location.pathname.endsWith("login.html")) {
     window.location.href = "index.html";
   } else {
@@ -672,7 +762,7 @@ function saveProfile() {
   const offcanvasEl = document.getElementById("profileSidebar");
   const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
   if (offcanvas) offcanvas.hide();
-  alert("تم حفظ البيانات بنجاح");
+  notify("تم حفظ البيانات بنجاح", "success");
 }
 
 function logout() {

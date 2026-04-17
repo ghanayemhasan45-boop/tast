@@ -92,12 +92,27 @@
                     <label for="loginPassword" class="form-label"
                       >كلمة المرور</label
                     >
-                    <input
-                      type="password"
-                      class="form-control"
-                      id="loginPassword"
-                      placeholder="كلمة المرور"
-                    />
+                    <div class="input-group">
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="loginPassword"
+                        placeholder="كلمة المرور"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="
+                          togglePasswordField(
+                            'loginPassword',
+                            'loginPasswordIcon',
+                          )
+                        "
+                        tabindex="-1"
+                      >
+                        <i id="loginPasswordIcon" class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="d-flex justify-content-end mb-3">
                     <button
@@ -182,23 +197,53 @@
                     <label for="newUserPass" class="form-label"
                       >كلمة المرور</label
                     >
-                    <input
-                      type="password"
-                      id="newUserPass"
-                      class="form-control"
-                      placeholder="كلمة المرور (6 أحرف على الأقل)"
-                    />
+                    <div class="input-group">
+                      <input
+                        type="password"
+                        id="newUserPass"
+                        class="form-control"
+                        placeholder="كلمة المرور (6 أحرف على الأقل)"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="
+                          togglePasswordField('newUserPass', 'newUserPassIcon')
+                        "
+                        tabindex="-1"
+                      >
+                        <i id="newUserPassIcon" class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="mb-3">
                     <label for="newUserPassConfirm" class="form-label"
                       >تأكيد كلمة المرور</label
                     >
-                    <input
-                      type="password"
-                      id="newUserPassConfirm"
-                      class="form-control"
-                      placeholder="تأكيد كلمة المرور"
-                    />
+                    <div class="input-group">
+                      <input
+                        type="password"
+                        id="newUserPassConfirm"
+                        class="form-control"
+                        placeholder="تأكيد كلمة المرور"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="
+                          togglePasswordField(
+                            'newUserPassConfirm',
+                            'newUserPassConfirmIcon',
+                          )
+                        "
+                        tabindex="-1"
+                      >
+                        <i
+                          id="newUserPassConfirmIcon"
+                          class="fa-solid fa-eye"
+                        ></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="mb-3">
                     <small class="text-muted"

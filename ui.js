@@ -60,6 +60,14 @@ function renderProducts() {
     }).join('');
 }
 
+function notify(message, type = "info") {
+  if (typeof showAppMessage === "function") {
+    showAppMessage(message, type);
+  } else {
+    alert(message);
+  }
+}
+
 function showProductDetails(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -100,6 +108,6 @@ function showProductDetails(id) {
 function downloadProductResources(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    alert(`جاري تحميل صور ووصف المنتج: ${p.title}\n(سيتم فتح الصورة في نافذة جديدة)`);
+    notify(`جاري تحميل صور ووصف المنتج: ${p.title}\n(سيتم فتح الصورة في نافذة جديدة)`, 'info');
     window.open(p.image, '_blank');
 }

@@ -1,3 +1,11 @@
+function notify(message, type = "info") {
+  if (typeof showAppMessage === "function") {
+    showAppMessage(message, type);
+  } else {
+    alert(message);
+  }
+}
+
 // --- Cart State ---
 let cart = [];
 
@@ -98,7 +106,7 @@ function updateTotal() {
 
 function sendOrderToWhatsapp() {
   if (cart.length === 0) {
-    alert("السلة فارغة!");
+    notify("السلة فارغة!", "info");
     return;
   }
 
@@ -109,7 +117,7 @@ function sendOrderToWhatsapp() {
   const city = document.getElementById("custCity").value;
 
   if (!name || !phone1 || !address || !city) {
-    alert("برجاء ملء جميع بيانات العميل الأساسية");
+    notify("برجاء ملء جميع بيانات العميل الأساسية", "info");
     return;
   }
 

@@ -1,5 +1,6 @@
-import {
-  getFirestore,
+const db = window.db || null;
+const {
+  collection,
   doc,
   onSnapshot,
   updateDoc,
@@ -7,9 +8,8 @@ import {
   arrayUnion,
   setDoc,
   getDoc,
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-
-const db = getFirestore();
+  addDoc,
+} = window.firestoreHelpers || {};
 const CURRENT_USER_KEY = "currentUser";
 let currentUserEmail = null;
 
@@ -24,9 +24,57 @@ function getStoredUserEmail() {
   }
 }
 
+function loadWalletNotifications() {
+  const data = localStorage.getItem("walletNotifications");
+  return data ? JSON.parse(data) : {};
+}
+
+function saveWalletNotifications(notifs) {
+  localStorage.setItem("walletNotifications", JSON.stringify(notifs));
+}
+
+function clearWalletNotifications(email) {
+  const notifs = loadWalletNotifications();
+  if (!notifs[email]) return;
+  delete notifs[email];
+  saveWalletNotifications(notifs);
+}
+
+function renderWalletNotifications() {
+  const container = document.getElementById("walletNotificationsContainer");
+  if (!container) return;
+
+  const notifications = loadWalletNotifications()[currentUserEmail] || [];
+  if (!notifications.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="alert alert-info rounded-4">
+      <h6 class="mb-2">إشعارات المحفظة</h6>
+      ${notifications
+        .map(
+          (item) => `<div class="mb-2">
+              <p class="mb-1">${item.message}</p>
+              <small class="text-muted">${item.date}</small>
+          </div>`,
+        )
+        .join("")}
+    </div>
+  `;
+  clearWalletNotifications(currentUserEmail);
+}
+
 function initWalletPage() {
-  currentUserEmail = getStoredUserEmail();
+  currentUserEmail = getStoredUserEmail() || window.currentUser?.email || null;
   if (!currentUserEmail) {
+    resetWalletUI();
+    return;
+  }
+
+  if (!db || !doc || !onSnapshot || !setDoc || !getDoc) {
+    console.warn("Firebase غير مهيأ بشكل كامل في صفحة المحفظة.");
     resetWalletUI();
     return;
   }
@@ -50,6 +98,7 @@ function initWalletPage() {
         history: [],
       });
     }
+    renderWalletNotifications();
   });
 }
 
@@ -110,7 +159,7 @@ window.toggleWithdrawForm = function () {
 
 window.confirmWithdraw = async function () {
   if (!currentUserEmail) {
-    alert("يرجى تسجيل الدخول أولاً لطلب السحب.");
+    showAppMessage("يرجى تسجيل الدخول أولاً لطلب السحب.", "info");
     return;
   }
 
@@ -119,7 +168,7 @@ window.confirmWithdraw = async function () {
   const number = document.getElementById("withdrawNumber").value.trim();
 
   if (!amount || !number || amount < 50) {
-    alert("يرجى إدخال بيانات صحيحة (الحد الأدنى للسحب 50 ج.م)");
+    showAppMessage("يرجى إدخال بيانات صحيحة (الحد الأدنى للسحب 50 ج.م)", "info");
     return;
   }
 
@@ -136,17 +185,34 @@ window.confirmWithdraw = async function () {
       history: arrayUnion({
         type: "withdraw",
         amount,
-        desc: `طلب سحب جاري - ${methodName} (${number})`,
+        desc: `طلب سحب جاري - سيتم التحويل بعد 24 ساعة (${methodName} - ${number})`,
         date: dateStr,
+        status: "pending",
       }),
     });
 
-    alert("تم إرسال طلب السحب بنجاح! سيتم التحويل قريباً.");
+    if (db && collection && addDoc) {
+      try {
+        await addDoc(collection(db, "WithdrawRequests"), {
+          marketerEmail: currentUserEmail,
+          amount,
+          method: methodName,
+          number,
+          status: "pending",
+          requestedAt: new Date(),
+          walletEmail: currentUserEmail,
+        });
+      } catch (error) {
+        console.error("خطأ في حفظ طلب السحب في لوحة الإدارة:", error);
+      }
+    }
+
+    showAppMessage("تم إرسال طلب السحب بنجاح! سيتم التحويل بعد 24 ساعة.", "success");
     const form = document.getElementById("withdrawForm");
     if (form) form.classList.add("d-none");
     document.getElementById("withdrawAmount").value = "";
     document.getElementById("withdrawNumber").value = "";
   } else {
-    alert("رصيدك الحالي لا يكفي لإتمام عملية السحب!");
+    showAppMessage("رصيدك الحالي لا يكفي لإتمام عملية السحب!", "error");
   }
 };

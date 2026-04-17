@@ -1,10 +1,18 @@
 // --- تقرير المبيعات الشامل ---
 
+function notify(message, type = "info") {
+    if (typeof showAppMessage === "function") {
+        showAppMessage(message, type);
+    } else {
+        alert(message);
+    }
+}
+
 function openSalesReport() {
     const sales = loadDailySales();
     
     if (sales.length === 0) {
-        alert('لا توجد مبيعات مسجلة بعد');
+        notify('لا توجد مبيعات مسجلة بعد', 'info');
         return;
     }
 

@@ -1,4 +1,12 @@
 // --- Utility Functions ---
+function notify(message, type = "info") {
+    if (typeof showAppMessage === "function") {
+        showAppMessage(message, type);
+    } else {
+        alert(message);
+    }
+}
+
 function calculateProfitManual() {
     const finalTotalElement = document.getElementById('finalTotalInput');
     const wholesaleElement = document.getElementById('summaryWholesale');
@@ -17,7 +25,7 @@ function calculateProfitManual() {
 function downloadProductResources(id) {
     const product = products.find(p => p.id === id);
     if (!product || !product.image) {
-        alert('لا توجد موارد للتحميل');
+        notify('لا توجد موارد للتحميل', 'info');
         return;
     }
 

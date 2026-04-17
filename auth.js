@@ -1,15 +1,38 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  onSnapshot,
+  serverTimestamp,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  increment,
+  arrayUnion,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDDOfl6AlQQHTH_UZD-GQv6mninKHZKtgY",
-    authDomain: "makasab-pro.firebaseapp.com",
-    projectId: "makasab-pro",
-    storageBucket: "makasab-pro.firebasestorage.app",
-    messagingSenderId: "1056068624133",
-    appId: "1:1056068624133:web:ad9e417d207b8fd2fda16c",
-    measurementId: "G-ZE4YJ931FS"
+  apiKey: "AIzaSyDDOfl6AlQQHTH_UZD-GQv6mninKHZKtgY",
+  authDomain: "makasab-pro.firebaseapp.com",
+  projectId: "makasab-pro",
+  storageBucket: "makasab-pro.firebasestorage.app",
+  messagingSenderId: "1056068624133",
+  appId: "1:1056068624133:web:ad9e417d207b8fd2fda16c",
+  measurementId: "G-ZE4YJ931FS",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -18,6 +41,23 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const ADMIN_EMAILS = ["admin@makasabpro.com", "ghanayemhasan45@gmail.com"];
 const CURRENT_USER_KEY = "currentUser";
+let currentUser = null;
+
+function hydrateCurrentUserFromStorage() {
+  const stored = localStorage.getItem(CURRENT_USER_KEY);
+  if (!stored) return;
+  try {
+    const parsed = JSON.parse(stored);
+    if (parsed?.email) {
+      currentUser = parsed;
+      window.currentUser = currentUser;
+    }
+  } catch (error) {
+    console.warn("تعذّر تحميل بيانات المستخدم المخزنة:", error);
+  }
+}
+
+hydrateCurrentUserFromStorage();
 
 window.auth = auth;
 window.db = db;
@@ -27,11 +67,16 @@ window.firestoreHelpers = {
   doc,
   setDoc,
   getDoc,
-  addDoc,
+  updateDoc,
+  onSnapshot,
   serverTimestamp,
+  addDoc,
   query,
   where,
+  orderBy,
   getDocs,
+  increment,
+  arrayUnion,
 };
 
 const googleLoginBtn = document.getElementById("google-login-btn");
@@ -45,12 +90,15 @@ if (googleLoginBtn) {
     try {
       const result = await signInWithPopup(auth, provider);
       await handleLoginSuccess(result.user);
+      if (window.location.pathname.endsWith("login.html")) {
+        window.location.href = "index.html";
+      }
     } catch (error) {
       console.error("خطأ في تسجيل الدخول عبر جوجل:", error);
       if (error.code === "auth/unauthorized-domain") {
-        alert("النطاق غير مصرح له في إعدادات Firebase.");
+        notify("النطاق غير مصرح له في إعدادات Firebase.", "error");
       } else {
-        alert("حدث خطأ أثناء تسجيل الدخول عبر جوجل: " + error.message);
+        notify("حدث خطأ أثناء تسجيل الدخول عبر جوجل: " + error.message, "error");
       }
     } finally {
       googleLoginBtn.innerHTML = originalText;
@@ -131,17 +179,17 @@ window.forgotPassword = function () {
 
   if (!email) {
     if (emailInput) emailInput.focus();
-    alert("يرجى إدخال البريد الإلكتروني لاستعادة كلمة المرور.");
+    notify("يرجى إدخال البريد الإلكتروني لاستعادة كلمة المرور.", "info");
     return;
   }
 
   sendPasswordResetEmail(auth, email)
     .then(() => {
-      alert("تم إرسال رسالة إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.");
+      notify("تم إرسال رسالة إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.", "success");
     })
     .catch((error) => {
       console.error("خطأ أثناء إرسال رسالة إعادة التعيين:", error);
-      alert("حدث خطأ: " + error.message);
+      notify("حدث خطأ: " + error.message, "error");
     });
 };
 
@@ -179,150 +227,169 @@ onAuthStateChanged(auth, async (user) => {
 const ORDER_STORAGE_KEY = "dropshipOrders";
 
 function loadLocalOrders() {
-    const data = localStorage.getItem(ORDER_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+  const data = localStorage.getItem(ORDER_STORAGE_KEY);
+  return data ? JSON.parse(data) : [];
 }
 
 function saveLocalOrders(orders) {
-    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
+  localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
 }
 
 function addLocalOrder(order) {
-    const orders = loadLocalOrders();
-    orders.unshift(order);
-    saveLocalOrders(orders);
+  const orders = loadLocalOrders();
+  orders.unshift(order);
+  saveLocalOrders(orders);
 }
 
 function shippingCostForCity(city) {
-    if (city === "cairo") return 50;
-    if (city === "giza") return 65;
-    return 0;
+  if (city === "cairo") return 50;
+  if (city === "giza") return 65;
+  return 0;
 }
 
-window.submitOrderAuth = async function() {
-    console.log("1. بدأنا تنفيذ الطلب...");
+window.submitOrderAuth = async function () {
+  console.log("1. بدأنا تنفيذ الطلب...");
 
-    const currentUser = window.currentUser || auth.currentUser;
-    if (!currentUser || !currentUser.email) {
-        alert("عذراً، يجب تسجيل الدخول أولاً.");
-        return;
+  const currentUser = window.currentUser || auth.currentUser;
+  if (!currentUser || !currentUser.email) {
+    notify("عذراً، يجب تسجيل الدخول أولاً.", "info");
+    return;
+  }
+  console.log("2. المستخدم مسجل دخول بإيميل:", currentUser.email);
+
+  const name = document.getElementById("custName").value.trim();
+  const phone1 = document.getElementById("custPhone1").value.trim();
+  const address = document.getElementById("custAddress").value.trim();
+  const city = document.getElementById("custCity").value;
+
+  if (!name || !phone1 || !address || !city) {
+    notify("يرجى ملء جميع البيانات الأساسية.", "info");
+    return;
+  }
+
+  const orderItems = Array.isArray(window.cart)
+    ? window.cart
+    : Array.isArray(cart)
+      ? cart
+      : [];
+
+  if (orderItems.length === 0) {
+    notify("السلة فارغة!", "info");
+    return;
+  }
+  console.log("3. البيانات جاهزة، عدد المنتجات في السلة:", orderItems.length);
+
+  const total =
+    parseFloat(document.getElementById("finalTotalInput").value) || 0;
+  const profit =
+    parseFloat(document.getElementById("summaryProfit").innerText) || 0;
+
+  const btn = document.querySelector(".whatsapp-btn");
+  const originalText = btn ? btn.innerHTML : "الطلب الآن";
+  if (btn) {
+    btn.innerHTML =
+      '<i class="fa-solid fa-spinner fa-spin me-2"></i> جاري الإرسال...';
+    btn.disabled = true;
+  }
+
+  try {
+    console.log("4. جاري الاتصال بـ Firebase...");
+    console.log("db:", db, "collection:", collection, "addDoc:", addDoc);
+
+    if (
+      !db ||
+      typeof collection !== "function" ||
+      typeof addDoc !== "function"
+    ) {
+      throw new Error(
+        "Firebase غير مهيأ بشكل صحيح. تأكد من استيراد getFirestore و collection و addDoc.",
+      );
     }
-    console.log("2. المستخدم مسجل دخول بإيميل:", currentUser.email);
 
-    const name = document.getElementById("custName").value.trim();
-    const phone1 = document.getElementById("custPhone1").value.trim();
-    const address = document.getElementById("custAddress").value.trim();
-    const city = document.getElementById("custCity").value;
+    const addDocPromise = addDoc(collection(db, "Orders"), {
+      marketerEmail: currentUser.email,
+      customer: { name, phone1, address, city },
+      items: orderItems,
+      total: total,
+      profit: profit,
+      status: "pending",
+      createdAt: new Date(),
+    });
 
-    if (!name || !phone1 || !address || !city) {
-        alert("يرجى ملء جميع البيانات الأساسية.");
-        return;
-    }
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              "انتهى وقت الاتصال بـ Firebase بعد 10 ثوانٍ. تحقق من الشبكة أو إعدادات Firestore.",
+            ),
+          ),
+        10000,
+      ),
+    );
 
-    const orderItems = Array.isArray(window.cart)
-        ? window.cart
-        : Array.isArray(cart)
-            ? cart
-            : [];
+    const docRef = await Promise.race([addDocPromise, timeoutPromise]);
 
-    if (orderItems.length === 0) {
-        alert("السلة فارغة!");
-        return;
-    }
-    console.log("3. البيانات جاهزة، عدد المنتجات في السلة:", orderItems.length);
+    console.log("5. تم الإرسال بنجاح! رقم الطلب:", docRef.id);
 
-    const total = parseFloat(document.getElementById("finalTotalInput").value) || 0;
-    const profit = parseFloat(document.getElementById("summaryProfit").innerText) || 0;
-
-    const btn = document.querySelector(".whatsapp-btn");
-    const originalText = btn ? btn.innerHTML : "الطلب الآن";
-    if(btn) {
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> جاري الإرسال...';
-        btn.disabled = true;
-    }
+    const localOrder = {
+      id: docRef.id,
+      marketerEmail: currentUser.email,
+      customer: {
+        name,
+        phone1,
+        phone2: document.getElementById("custPhone2")?.value.trim() || "",
+        address,
+        city,
+        email: currentUser.email,
+      },
+      items: orderItems,
+      total,
+      profit,
+      shippingCost: shippingCostForCity(city),
+      status: "pending",
+      date: new Date().toLocaleString("ar-EG"),
+    };
 
     try {
-        console.log("4. جاري الاتصال بـ Firebase...");
-        console.log("db:", db, "collection:", collection, "addDoc:", addDoc);
-
-        if (!db || typeof collection !== "function" || typeof addDoc !== "function") {
-            throw new Error("Firebase غير مهيأ بشكل صحيح. تأكد من استيراد getFirestore و collection و addDoc.");
-        }
-
-        const addDocPromise = addDoc(collection(db, "Orders"), {
-            marketerEmail: currentUser.email,
-            customer: { name, phone1, address, city },
-            items: orderItems,
-            total: total,
-            profit: profit,
-            status: "pending", 
-            createdAt: new Date()
-        });
-
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(
-                () => reject(new Error("انتهى وقت الاتصال بـ Firebase بعد 10 ثوانٍ. تحقق من الشبكة أو إعدادات Firestore.")),
-                10000,
-            ),
-        );
-
-        const docRef = await Promise.race([addDocPromise, timeoutPromise]);
-
-        console.log("5. تم الإرسال بنجاح! رقم الطلب:", docRef.id);
-
-        const localOrder = {
-            id: docRef.id,
-            marketerEmail: currentUser.email,
-            customer: {
-                name,
-                phone1,
-                phone2: document.getElementById("custPhone2")?.value.trim() || "",
-                address,
-                city,
-                email: currentUser.email,
-            },
-            items: orderItems,
-            total,
-            profit,
-            shippingCost: shippingCostForCity(city),
-            status: "pending",
-            date: new Date().toLocaleString("ar-EG"),
-        };
-
-        try {
-            if (typeof window.addOrder === "function") {
-                window.addOrder(localOrder);
-            } else {
-                addLocalOrder(localOrder);
-            }
-        } catch (localError) {
-            console.warn("تعذّر حفظ الطلب محلياً:", localError);
-            addLocalOrder(localOrder);
-        }
-
-        window.cart.length = 0; 
-        if (typeof window.updateCartUI === 'function') window.updateCartUI(); 
-
-        const modalEl = document.getElementById("cartModal");
-        if(modalEl){
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            if (modal) modal.hide();
-        }
-
-        alert("🎉 تم إرسال الطلب بنجاح للوحة الإدارة! \nرقم طلبك: #" + docRef.id.slice(-5).toUpperCase());
-
-    } catch (error) {
-        console.error("6. ❌ خطأ في الإرسال:", error);
-        alert("حدث خطأ أثناء الإرسال: " + (error.message || error));
-    } finally {
-        if(btn) {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-        console.log("7. انتهت العملية.");
+      if (typeof window.addOrder === "function") {
+        window.addOrder(localOrder);
+      } else {
+        addLocalOrder(localOrder);
+      }
+    } catch (localError) {
+      console.warn("تعذّر حفظ الطلب محلياً:", localError);
+      addLocalOrder(localOrder);
     }
+
+    window.cart.length = 0;
+    if (typeof window.updateCartUI === "function") window.updateCartUI();
+
+    const modalEl = document.getElementById("cartModal");
+    if (modalEl) {
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+    }
+
+    localStorage.setItem("lastOrderId", docRef.id);
+
+    console.log(
+      "تم إرسال الطلب بنجاح للوحة الإدارة! رقم طلبك: #" +
+        docRef.id.slice(-5).toUpperCase(),
+    );
+
+    window.location.href = "report.html";
+  } catch (error) {
+    console.error("6. ❌ خطأ في الإرسال:", error);
+    notify("حدث خطأ أثناء الإرسال: " + (error.message || error), "error");
+  } finally {
+    if (btn) {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+    console.log("7. انتهت العملية.");
+  }
 };
 
 window.submitOrder = window.submitOrderAuth;
 console.log("auth.js: submitOrderAuth is loaded and hooked");
-
