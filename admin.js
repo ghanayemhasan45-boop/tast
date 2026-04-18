@@ -343,6 +343,16 @@ function toggleAdminNotifications() {
   panel.classList.toggle("d-none");
   if (!panel.classList.contains("d-none")) {
     renderAdminNotifications();
+    // إضافة إغلاق تلقائي عند النقر خارج اللوحة
+    setTimeout(() => {
+      const closePanel = (e) => {
+        if (!panel.contains(e.target) && !document.getElementById("adminNotificationsButton").contains(e.target)) {
+          panel.classList.add("d-none");
+          document.removeEventListener("click", closePanel);
+        }
+      };
+      document.addEventListener("click", closePanel);
+    }, 10);
   }
 }
 
