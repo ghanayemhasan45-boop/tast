@@ -457,6 +457,61 @@ function groupOrdersByCustomer(orders) {
   return Object.values(groups);
 }
 
+function loadRegisteredUsersCount() {
+  const stored = localStorage.getItem("registeredUsers");
+  if (!stored) return 0;
+  try {
+    return Object.keys(JSON.parse(stored) || {}).length;
+  } catch {
+    return 0;
+  }
+}
+
+function renderRegisteredUsersCount() {
+  const user = getCurrentUser();
+  if (!isAdminUser(user)) return;
+  const el = document.getElementById("registeredUsersCount");
+  if (!el) return;
+  el.innerText = loadRegisteredUsersCount();
+}
+
+function showAdminTab(tab) {
+  const ordersTab = document.getElementById("ordersTabBtn");
+  const withdrawTab = document.getElementById("withdrawTabBtn");
+  const searchContainer = document.getElementById("adminSearchContainer");
+  const ordersSection = document.getElementById("ordersSection");
+  const withdrawSection = document.getElementById("withdrawSection");
+  const ordersControls = document.getElementById("ordersControls");
+
+  if (!ordersTab || !withdrawTab || !ordersSection || !withdrawSection) return;
+
+  const showOrders = tab === "orders";
+  ordersTab.classList.toggle("active", showOrders);
+  withdrawTab.classList.toggle("active", !showOrders);
+  ordersSection.style.display = showOrders ? "block" : "none";
+  withdrawSection.style.display = showOrders ? "none" : "block";
+
+  if (searchContainer) {
+    searchContainer.style.display = showOrders ? "block" : "none";
+  }
+  if (ordersControls) {
+    ordersControls.style.display = showOrders ? "block" : "none";
+  }
+}
+
+function clearOrderHistory() {
+  if (
+    !confirm(
+      "هل أنت متأكد أنك تريد مسح سجل الطلبات المحفوظ محلياً؟ هذا لن يؤثر على الطلبات المخزنة في Firestore.",
+    )
+  ) {
+    return;
+  }
+  localStorage.removeItem(ORDER_STORAGE_KEY);
+  showAppMessage("تم مسح سجل الطلبات المحلي بنجاح.", "success");
+  renderAdminOrders();
+}
+
 function loadOrders() {
   const data = localStorage.getItem(ORDER_STORAGE_KEY);
   return data ? JSON.parse(data) : [];
@@ -590,6 +645,7 @@ async function renderAdminOrders() {
   document.getElementById("confirmedOrdersCount").innerText =
     confirmedOrders.length;
   document.getElementById("totalOrdersCount").innerText = orders.length;
+  renderRegisteredUsersCount();
 
   const container = document.getElementById("ordersContainer");
   if (orders.length === 0) {
@@ -620,7 +676,7 @@ async function renderAdminOrders() {
                             <p class="mb-1 text-muted">${customer.email || customer.phone1 || customer.phone2 || "بدون بيانات اتصال"}</p>
                         </div>
                         <div class="text-end">
-                            <span class="badge bg-primary me-2">${group.orders.length} طلب</span>
+                            <span class="badge bg-primary me-2">${group.orders.length === 1 ? "طلب واحد" : `${group.orders.length} طلبات`}</span>
                             <span class="badge bg-success">إجمالي ${groupTotal.toFixed(2)} ج.م</span>
                             <span class="badge bg-info text-dark">ربح ${groupProfit.toFixed(2)} ج.م</span>
                         </div>
@@ -630,6 +686,17 @@ async function renderAdminOrders() {
                     ${group.orders
                       .map((order) => {
                         const customerOrder = order.customer || {};
+                        const orderQuantity = Array.isArray(order.items)
+                          ? order.items.reduce(
+                              (sum, item) =>
+                                sum + (parseInt(item.qty, 10) || 1),
+                              0,
+                            )
+                          : 0;
+                        const orderEmail =
+                          customerOrder.email ||
+                          order.marketerEmail ||
+                          "غير مسجل";
                         return `
                             <div class="col-12">
                                 <div class="admin-order-card p-4 rounded-4 shadow-sm bg-white">
@@ -648,13 +715,13 @@ async function renderAdminOrders() {
                                                 <p class="mb-1"><strong>الهاتف 1:</strong> ${customerOrder.phone1 || "-"}</p>
                                                 <p class="mb-1"><strong>الهاتف 2:</strong> ${customerOrder.phone2 || "-"}</p>
                                                 <p class="mb-1"><strong>المحافظة:</strong> ${customerOrder.city || "-"}</p>
-                                                <p class="mb-1"><strong>البريد:</strong> ${customerOrder.email || "غير مسجل"}</p>
+                                                <p class="mb-1"><strong>البريد:</strong> ${orderEmail}</p>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="admin-info-box p-3 rounded-4 bg-light">
                                                 <h6 class="mb-2">ملخص الطلب</h6>
-                                                <p class="mb-1"><strong>عدد المنتجات:</strong> ${order.items.length}</p>
+                                                <p class="mb-1"><strong>عدد المنتجات:</strong> ${orderQuantity}</p>
                                                 <p class="mb-1"><strong>الشحن:</strong> ${order.shippingCost} ج.م</p>
                                                 <p class="mb-1"><strong>الإجمالي:</strong> ${order.total} ج.م</p>
                                                 <p class="mb-1"><strong>الربح:</strong> ${order.profit} ج.م</p>
@@ -676,14 +743,23 @@ async function renderAdminOrders() {
                                           ? order.items
                                           : []
                                         )
-                                          .map(
-                                            (item) => `
+                                          .map((item) => {
+                                            const itemQty =
+                                              parseInt(item.qty, 10) || 1;
+                                            const wholesalePrice =
+                                              parseFloat(item.price) || 0;
+                                            const sellingPrice = parseFloat(
+                                              item.userSellingPrice ||
+                                                item.selling ||
+                                                0,
+                                            );
+                                            return `
                                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span>${item.title} (x${item.qty})</span>
-                                                <span>${item.selling?.toFixed ? item.selling.toFixed(2) : item.selling || 0} ج.م</span>
+                                                <span>${item.title} (x${itemQty})</span>
+                                                <span>جملة: ${wholesalePrice.toFixed(2)} ج.م / بيع: ${sellingPrice.toFixed(2)} ج.م</span>
                                             </div>
-                                        `,
-                                          )
+                                        `;
+                                          })
                                           .join("")}
                                     </div>
 
@@ -929,6 +1005,7 @@ function initAdminPage() {
   if (!checkAdminAccess()) return;
   renderAdminOrders();
   renderWithdrawRequests();
+  showAdminTab("orders");
   window.addEventListener("storage", () => {
     renderAdminOrders();
     renderWithdrawRequests();
@@ -950,5 +1027,7 @@ window.setWithdrawFilter = setWithdrawFilter;
 window.setOrderSearch = setOrderSearch;
 window.exportDeliveredOrders = exportDeliveredOrders;
 window.exportCompletedWithdrawRequests = exportCompletedWithdrawRequests;
+window.showAdminTab = showAdminTab;
+window.clearOrderHistory = clearOrderHistory;
 
 document.addEventListener("DOMContentLoaded", initAdminPage);
